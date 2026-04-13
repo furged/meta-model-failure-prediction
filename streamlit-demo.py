@@ -349,7 +349,7 @@ with tab1:
     
     col1, col2 = st.columns([1, 4])
     with col1:
-        predict_button = st.button("ANALYZE", use_container_width=True)
+        predict_button = st.button("ANALYZE", width="stretch")
     
     if predict_button or user_input:
         np.random.seed(hash(user_input) % 2**32)
@@ -431,7 +431,7 @@ with tab1:
                 xaxis_title="",
                 yaxis_title=""
             )
-            st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+            st.plotly_chart(fig, width="stretch", config={"displayModeBar": False})
             st.markdown('</div>', unsafe_allow_html=True)
         
         with col2:
@@ -466,7 +466,7 @@ with tab1:
                 xaxis_title="",
                 yaxis_title=""
             )
-            st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+            st.plotly_chart(fig, width="stretch", config={"displayModeBar": False})
             st.markdown('</div>', unsafe_allow_html=True)
         
         st.markdown('</div>', unsafe_allow_html=True)
@@ -595,7 +595,7 @@ with tab3:
     
     col1, col2 = st.columns([1, 2])
     with col1:
-        st.dataframe(pd.DataFrame(results_data), use_container_width=True, hide_index=True)
+        st.dataframe(pd.DataFrame(results_data), width="stretch", hide_index=True)
     
     with col2:
         fig = go.Figure()
@@ -613,7 +613,7 @@ with tab3:
             xaxis=dict(showgrid=False, color="#8080ff"),
             legend=dict(font=dict(color="#8080ff"))
         )
-        st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+        st.plotly_chart(fig, width="stretch", config={"displayModeBar": False})
     
     st.markdown('<hr class="divider">', unsafe_allow_html=True)
     
