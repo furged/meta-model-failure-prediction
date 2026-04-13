@@ -103,5 +103,12 @@ def predict_text(text):
 
     risk_prob = meta_model.predict_proba(features)[0][1]
 
-    return risk_prob, tr_conf, v_conf, t_conf
+    return {
+        "sentiment": "Positive" if tr_pred == 1 else "Negative",
+        "risk": risk_prob,
+        "transformer_confidence": tr_conf,
+        "vader_confidence": v_conf,
+        "tfidf_confidence": t_conf
+    }
+
 

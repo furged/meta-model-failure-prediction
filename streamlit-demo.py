@@ -353,12 +353,29 @@ with tab1:
         predict_button = st.button("ANALYZE", width="stretch")
     
     if predict_button or user_input:
-        failure_risk, transformer_confidence, vader_confidence, tfidf_confidence = predict_text(user_input)
+        result = predict_text(user_input)
 
-        disagreement = 1 - ( (transformer_confidence + vader_confidence + tfidf_confidence) / 3 )
+        failure_risk = result["risk"]
+        transformer_confidence = result["transformer_conf"]
+        vader_confidence = result["vader_conf"]
+        tfidf_confidence = result["tfidf_conf"]
+        sentiment = result["sentiment"]
+
+        preds = [
+            int(transformer_confidence > 0.5),
+            int(vader_confidence > 0.5),
+            int(tfidf_confidence > 0.5)
+        ]
+
+        disagreement = len(set(preds)) / 3
         
         st.markdown('<hr class="divider">', unsafe_allow_html=True)
         st.markdown('<div class="section-title">RESULTS</div>', unsafe_allow_html=True)
+        st.markdown(f"""
+        <div class="info-box">
+        <strong>SENTIMENT:</strong> {sentiment.upper()}
+        </div>
+        """, unsafe_allow_html=True)
         
         st.markdown('<div class="metrics-grid">', unsafe_allow_html=True)
         
