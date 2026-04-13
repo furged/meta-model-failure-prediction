@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 import time
+from predict import predict_text
 
 st.set_page_config(
     page_title="Model Failure Prediction",
@@ -352,17 +353,9 @@ with tab1:
         predict_button = st.button("ANALYZE", width="stretch")
     
     if predict_button or user_input:
-        np.random.seed(hash(user_input) % 2**32)
-        
-        transformer_confidence = np.random.uniform(0.75, 0.99)
-        vader_confidence = np.random.uniform(0.60, 0.95)
-        tfidf_confidence = np.random.uniform(0.55, 0.90)
-        
-        disagreement = abs(np.random.normal(0.3, 0.15))
-        disagreement = max(0, min(1, disagreement))
-        
-        failure_risk = 0.15 + (disagreement * 0.4) + (1 - transformer_confidence) * 0.3
-        failure_risk = max(0, min(1, failure_risk))
+        failure_risk, transformer_confidence, vader_confidence, tfidf_confidence = predict_text(user_input)
+
+        disagreement = 1 - ( (transformer_confidence + vader_confidence + tfidf_confidence) / 3 )
         
         st.markdown('<hr class="divider">', unsafe_allow_html=True)
         st.markdown('<div class="section-title">RESULTS</div>', unsafe_allow_html=True)
