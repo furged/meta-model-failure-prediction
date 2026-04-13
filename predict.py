@@ -5,6 +5,8 @@ import torch.nn.functional as F
 import numpy as np
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 from nltk.sentiment import SentimentIntensityAnalyzer
+import nltk
+nltk.download('vader_lexicon')
 
 # Load saved artifacts
 tfidf = joblib.load("artifacts/tfidf.pkl")
