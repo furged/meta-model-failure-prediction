@@ -2,6 +2,7 @@ import argparse
 import joblib
 import torch
 import torch.nn.functional as F
+import numpy as np
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 from nltk.sentiment import SentimentIntensityAnalyzer
 
@@ -11,19 +12,26 @@ lr_model = joblib.load("artifacts/lr_model.pkl")
 meta_model = joblib.load("artifacts/meta_model.pkl")
 
 # Load transformer
-tokenizer = AutoTokenizer.from_pretrained(
-    "distilbert-base-uncased-finetuned-sst-2-english"
-)
-transformer = AutoModelForSequenceClassification.from_pretrained(
-    "distilbert-base-uncased-finetuned-sst-2-english"
-)
-transformer.eval()
+from functools import lru_cache
+
+@lru_cache()
+def load_transformer():
+    tokenizer = AutoTokenizer.from_pretrained(
+        "distilbert-base-uncased-finetuned-sst-2-english"
+    )
+    model = AutoModelForSequenceClassification.from_pretrained(
+        "distilbert-base-uncased-finetuned-sst-2-english"
+    )
+    model.eval()
+    return tokenizer, model
+
+tokenizer, transformer = load_transformer()
 
 vader = SentimentIntensityAnalyzer()
 
 def vader_predict(text):
     score = vader.polarity_scores(text)["compound"]
-    pred = 1 if score > 0 else 0
+    pred = 1 if score >= 0 else 0
     conf = abs(score)
     return pred, conf
 
@@ -53,20 +61,45 @@ def main():
     t_pred, t_conf = tfidf_predict(text)
     tr_pred, tr_conf = transformer_predict(text)
 
+    preds = [v_pred, t_pred, tr_pred]
+    confs = [v_conf, t_conf, tr_conf]
+
+    disagreement = len(set(preds)) / 3
+    conf_std = np.std(confs)
+
     features = [[
-        v_pred,
         v_conf,
-        t_pred,
         t_conf,
-        tr_conf
+        tr_conf,
+        disagreement,
+        conf_std
     ]]
 
-    risk = meta_model.predict(features)[0]
+    risk_prob = meta_model.predict_proba(features)[0][1]
+    risk_label = "HIGH" if risk_prob > 0.5 else "LOW"
 
     print("\n=== Results ===")
     print("Transformer Prediction:", "Positive" if tr_pred == 1 else "Negative")
     print("Transformer Confidence:", round(tr_conf, 4))
-    print("Failure Risk:", "HIGH" if risk == 1 else "LOW")
+    print("Failure Risk:", risk_label)
 
 if __name__ == "__main__":
     main()
+
+def predict_text(text):
+    v_pred, v_conf = vader_predict(text)
+    t_pred, t_conf = tfidf_predict(text)
+    tr_pred, tr_conf = transformer_predict(text)
+
+    preds = [v_pred, t_pred, tr_pred]
+    confs = [v_conf, t_conf, tr_conf]
+
+    disagreement = len(set(preds)) / 3
+    conf_std = np.std(confs)
+
+    features = [[v_conf, t_conf, tr_conf, disagreement, conf_std]]
+
+    risk_prob = meta_model.predict_proba(features)[0][1]
+
+    return risk_prob, tr_conf, v_conf, t_conf
+
