@@ -66,3 +66,22 @@ Transformer Prediction: Negative
 Transformer Confidence: 0.9998
 Failure Risk: LOW
 
+---
+
+## Interactive Demo
+
+Try the model live with the interactive Streamlit dashboard:
+
+**[Launch Demo](https://your-username-model-failure-prediction.streamlit.app)**
+
+Or run locally:
+```bash
+pip install -r requirements.txt
+streamlit run streamlit_demo.py
+```
+
+The app lets you:
+- Enter sentiment text and see real-time predictions
+- View model agreement across VADER, TF-IDF, and DistilBERT
+- Understand risk factors that contribute to failure detection
+- Explore performance metrics and methodology
