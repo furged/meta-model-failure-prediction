@@ -106,9 +106,9 @@ def predict_text(text):
     return {
         "sentiment": "Positive" if tr_pred == 1 else "Negative",
         "risk": risk_prob,
-        "transformer_confidence": tr_conf,
-        "vader_confidence": v_conf,
-        "tfidf_confidence": t_conf
+        "transformer_conf": tr_conf,
+        "vader_conf": v_conf,
+        "tfidf_conf": t_conf
     }
 
 
