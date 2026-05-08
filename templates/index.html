@@ -1,0 +1,862 @@
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>
+        TRANSFORMER FAILURE MONITOR
+    </title>
+
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+        }
+
+
+        body {
+
+            margin: 0;
+
+            background: #0202b8;
+
+            color: #ffffff;
+
+            font-family: "Courier New", monospace;
+
+            overflow-x: hidden;
+
+            font-weight: bold;
+
+        }
+
+
+        .scanlines {
+
+            position: fixed;
+
+            inset: 0;
+
+            background:
+                repeating-linear-gradient(
+                    to bottom,
+                    rgba(255,255,255,0.04),
+                    rgba(255,255,255,0.04) 2px,
+                    transparent 2px,
+                    transparent 4px
+                );
+
+            pointer-events: none;
+
+            opacity: 0.3;
+
+        }
+
+
+        .container {
+
+            padding: 25px;
+
+        }
+
+
+        .topbar {
+
+            border: 4px solid white;
+
+            padding: 25px;
+
+            margin-bottom: 25px;
+
+            text-align: center;
+
+        }
+
+
+        .topbar h1 {
+
+            margin: 0;
+
+            font-size: 58px;
+
+            letter-spacing: 6px;
+
+        }
+
+
+        .topbar p {
+
+            margin-top: 15px;
+
+            font-size: 20px;
+
+        }
+
+
+        .layout {
+
+            display: grid;
+
+            grid-template-columns: 320px 1fr;
+
+            gap: 25px;
+
+        }
+
+
+        .sidebar {
+
+            border: 4px solid white;
+
+            padding: 20px;
+
+            height: fit-content;
+
+        }
+
+
+        .menu-title {
+
+            font-size: 36px;
+
+            margin-bottom: 25px;
+
+            text-align: center;
+
+        }
+
+
+        .menu-btn {
+
+            width: 100%;
+
+            background: transparent;
+
+            color: white;
+
+            border: 3px solid white;
+
+            padding: 18px;
+
+            margin-bottom: 18px;
+
+            font-size: 22px;
+
+            font-family: "Courier New", monospace;
+
+            font-weight: bold;
+
+            text-align: left;
+
+            cursor: pointer;
+
+        }
+
+
+        .menu-btn:hover,
+        .menu-btn.active {
+
+            background: white;
+
+            color: #0202b8;
+
+        }
+
+
+        .panel {
+
+            border: 4px solid white;
+
+            min-height: 780px;
+
+            padding: 30px;
+
+        }
+
+
+        .tab {
+
+            display: none;
+
+        }
+
+
+        .tab.active {
+
+            display: block;
+
+        }
+
+
+        .tab-title {
+
+            font-size: 46px;
+
+            margin-bottom: 35px;
+
+            letter-spacing: 2px;
+
+        }
+
+
+        textarea {
+
+            width: 100%;
+
+            height: 220px;
+
+            background: #01018d;
+
+            border: 4px solid white;
+
+            color: white;
+
+            padding: 25px;
+
+            font-size: 30px;
+
+            font-family: "Courier New", monospace;
+
+            resize: none;
+
+            font-weight: bold;
+
+        }
+
+
+        .run-btn {
+
+            margin-top: 25px;
+
+            background: white;
+
+            color: #0202b8;
+
+            border: none;
+
+            padding: 18px 38px;
+
+            font-size: 28px;
+
+            font-family: "Courier New", monospace;
+
+            font-weight: bold;
+
+            cursor: pointer;
+
+        }
+
+
+        .result-box {
+
+            margin-top: 35px;
+
+            border: 4px solid white;
+
+            padding: 25px;
+
+        }
+
+
+        .line {
+
+            font-size: 28px;
+
+            margin-bottom: 20px;
+
+            line-height: 1.6;
+
+        }
+
+
+        .safe {
+
+            color: #79ff79;
+
+        }
+
+
+        .danger {
+
+            color: #ff7272;
+
+        }
+
+
+        .grid {
+
+            display: grid;
+
+            grid-template-columns: repeat(2, 1fr);
+
+            gap: 25px;
+
+        }
+
+
+        .card {
+
+            border: 4px solid white;
+
+            padding: 25px;
+
+        }
+
+
+        .card-title {
+
+            font-size: 24px;
+
+            margin-bottom: 15px;
+
+        }
+
+
+        .card-value {
+
+            font-size: 52px;
+
+        }
+
+
+        .terminal {
+
+            border: 4px solid white;
+
+            padding: 25px;
+
+            margin-bottom: 25px;
+
+            font-size: 24px;
+
+            line-height: 1.8;
+
+        }
+
+
+        .project-box {
+
+            border: 4px solid white;
+
+            padding: 30px;
+
+            margin-bottom: 30px;
+
+        }
+
+
+        .project-box h2 {
+
+            font-size: 34px;
+
+            margin-top: 0;
+
+        }
+
+
+        .project-box p,
+        .project-box li {
+
+            font-size: 24px;
+
+            line-height: 1.8;
+
+        }
+
+
+        .architecture {
+
+            border: 4px solid white;
+
+            padding: 35px;
+
+            font-size: 28px;
+
+            line-height: 2;
+
+            white-space: pre-wrap;
+
+        }
+
+
+        @media(max-width: 1000px) {
+
+            .layout {
+                grid-template-columns: 1fr;
+            }
+
+        }
+
+    </style>
+
+</head>
+
+<body>
+
+    <div class="scanlines"></div>
+
+    <div class="container">
+
+
+        <div class="topbar">
+
+            <h1>
+                TRANSFORMER FAILURE MONITOR
+            </h1>
+
+            <p>
+                UNCERTAINTY • ADVERSARIAL ROBUSTNESS • META-RELIABILITY
+            </p>
+
+        </div>
+
+
+        <div class="layout">
+
+
+            <div class="sidebar">
+
+                <div class="menu-title">
+                    SYSTEM MENU
+                </div>
+
+
+                <button class="menu-btn active"
+                        onclick="openTab(event, 'analyze')">
+                    > ANALYZE
+                </button>
+
+
+                <button class="menu-btn"
+                        onclick="openTab(event, 'metrics')">
+                    > METRICS
+                </button>
+
+
+                <button class="menu-btn"
+                        onclick="openTab(event, 'failures')">
+                    > FAILURE CASES
+                </button>
+
+
+                <button class="menu-btn"
+                        onclick="openTab(event, 'architecture')">
+                    > ARCHITECTURE
+                </button>
+
+
+                <button class="menu-btn"
+                        onclick="openTab(event, 'project')">
+                    > PROJECT INFO
+                </button>
+
+            </div>
+
+
+            <div class="panel">
+
+
+                <!-- ANALYZE -->
+
+                <div class="tab active" id="analyze">
+
+                    <div class="tab-title">
+                        RELIABILITY ANALYSIS TERMINAL
+                    </div>
+
+
+                    <form method="POST">
+
+                        <textarea
+                            name="text"
+                            placeholder="ENTER TEXT FOR ANALYSIS..."
+                            required></textarea>
+
+                        <br>
+
+                        <button class="run-btn"
+                                type="submit">
+                            EXECUTE DIAGNOSTIC
+                        </button>
+
+                    </form>
+
+
+                    {% if result %}
+
+                    <div class="result-box">
+
+                        <div class="line">
+                            INPUT TEXT: {{ result.text }}
+                        </div>
+
+                        <div class="line">
+                            VADER PREDICTION: {{ result.vader_prediction }}
+                        </div>
+
+                        <div class="line">
+                            LR PREDICTION: {{ result.lr_prediction }}
+                        </div>
+
+                        <div class="line">
+                            BERT PREDICTION: {{ result.bert_prediction }}
+                        </div>
+
+                        <div class="line">
+                            BERT CONFIDENCE: {{ result.bert_confidence }}
+                        </div>
+
+                        <div class="line">
+                            BERT ENTROPY: {{ result.bert_entropy }}
+                        </div>
+
+                        <div class="line">
+                            FAILURE PROBABILITY: {{ result.failure_probability }}
+                        </div>
+
+
+                        {% if result.failure_probability >= 0.5 %}
+
+                        <div class="line danger">
+                            WARNING: TRANSFORMER INSTABILITY DETECTED
+                        </div>
+
+                        {% else %}
+
+                        <div class="line safe">
+                            SYSTEM STATUS: PREDICTION APPEARS RELIABLE
+                        </div>
+
+                        {% endif %}
+
+                    </div>
+
+                    {% endif %}
+
+                </div>
+
+
+                <!-- METRICS -->
+
+                <div class="tab" id="metrics">
+
+                    <div class="tab-title">
+                        SYSTEM PERFORMANCE METRICS
+                    </div>
+
+
+                    <div class="grid">
+
+                        <div class="card">
+
+                            <div class="card-title">
+                                META-MODEL RECALL
+                            </div>
+
+                            <div class="card-value">
+                                0.87
+                            </div>
+
+                        </div>
+
+
+                        <div class="card">
+
+                            <div class="card-title">
+                                FAILURE DETECTIONS
+                            </div>
+
+                            <div class="card-value">
+                                38
+                            </div>
+
+                        </div>
+
+
+                        <div class="card">
+
+                            <div class="card-title">
+                                DATASET SIZE
+                            </div>
+
+                            <div class="card-value">
+                                5000
+                            </div>
+
+                        </div>
+
+
+                        <div class="card">
+
+                            <div class="card-title">
+                                PRIMARY SIGNAL
+                            </div>
+
+                            <div class="card-value">
+                                ENTROPY
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- FAILURES -->
+
+                <div class="tab" id="failures">
+
+                    <div class="tab-title">
+                        FAILURE CASE DATABASE
+                    </div>
+
+
+                    <div class="terminal">
+
+                        > INPUT: that was so amazinnggg <br>
+                        > TRUE LABEL: POSITIVE <br>
+                        > BERT OUTPUT: NEGATIVE <br>
+                        > FAILURE PROBABILITY: 0.8601
+
+                    </div>
+
+
+                    <div class="terminal">
+
+                        > INPUT: not into a strangely tempting bouquet of a movie <br>
+                        > META-MODEL WARNING TRIGGERED <br>
+                        > HIGH ENTROPY DETECTED
+
+                    </div>
+
+
+                    <div class="terminal">
+
+                        > INPUT: of not the worst of the entire franchise <br>
+                        > NEGATION STRUCTURE DESTABILIZED MODEL
+
+                    </div>
+
+                </div>
+
+
+                <!-- ARCH -->
+
+                <div class="tab" id="architecture">
+
+                    <div class="tab-title">
+                        SYSTEM OVERVIEW
+                    </div>
+
+
+                    <div class="project-box">
+
+                        <h2>
+                            WHAT THIS SYSTEM DOES
+                        </h2>
+
+                        <p>
+                            Modern AI models can sound extremely confident even when they are wrong.
+                            This project attempts to detect those hidden failures before users trust the prediction.
+                        </p>
+
+                        <p>
+                            Instead of relying on one model alone, the system compares three different sentiment systems:
+                            DistilBERT, VADER, and TF-IDF Logistic Regression.
+                        </p>
+
+                        <p>
+                            Their predictions, confidence levels, disagreement patterns, and uncertainty signals are analyzed by a second AI model trained specifically to detect transformer instability.
+                        </p>
+
+                    </div>
+
+
+                    <div class="project-box">
+
+                        <h2>
+                            WHY THIS MATTERS
+                        </h2>
+
+                        <p>
+                            Tiny text changes like:
+                        </p>
+
+                        <div class="terminal">
+
+                            amazing  → reliable <br>
+                            amazingg → warning triggered <br>
+                            amazinnggg → transformer failure
+
+                        </div>
+
+                        <p>
+                            Humans still understand the meaning instantly.
+                            But the transformer becomes unstable.
+                            The meta-model detects that instability before complete prediction collapse.
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <!-- PROJECT -->
+
+                <div class="tab" id="project">
+
+                    <div class="tab-title">
+                        PROJECT DOSSIER
+                    </div>
+
+
+                    <div class="project-box">
+
+                        <h2>
+                            PROJECT SUMMARY
+                        </h2>
+
+                        <p>
+                            This project is an AI reliability system designed to predict when transformer-based sentiment models may fail under noisy or adversarial inputs.
+                        </p>
+
+                        <p>
+                            Instead of only classifying sentiment, the system focuses on a harder problem:
+                            determining whether the AI itself should be trusted.
+                        </p>
+
+                    </div>
+
+
+                    <div class="project-box">
+
+                        <h2>
+                            SCALE + MODELS
+                        </h2>
+
+                        <ul>
+
+                            <li>
+                                Trained on 5,000 adversarially perturbed SST-2 samples.
+                            </li>
+
+                            <li>
+                                Uses DistilBERT, VADER, and TF-IDF Logistic Regression together.
+                            </li>
+
+                            <li>
+                                Meta-model analyzes entropy, confidence, and cross-model disagreement.
+                            </li>
+
+                            <li>
+                                Detects transformer instability using a second-stage classifier.
+                            </li>
+
+                        </ul>
+
+                    </div>
+
+
+                    <div class="project-box">
+
+                        <h2>
+                            KEY RESULTS
+                        </h2>
+
+                        <ul>
+
+                            <li>
+                                Transformer failure recall improved to 0.87 after adversarial robustness testing.
+                            </li>
+
+                            <li>
+                                Entropy emerged as the strongest predictor of transformer failure.
+                            </li>
+
+                            <li>
+                                Small spelling corruptions significantly increased failure probability.
+                            </li>
+
+                            <li>
+                                Cross-model disagreement became a major reliability signal.
+                            </li>
+
+                            <li>
+                                System successfully identified high-confidence transformer failures.
+                            </li>
+
+                        </ul>
+
+                    </div>
+
+
+                    <div class="project-box">
+
+                        <h2>
+                            EXAMPLE FAILURE CASE
+                        </h2>
+
+                        <div class="terminal">
+
+                            INPUT: that was so amazinnggg <br>
+                            TRUE SENTIMENT: POSITIVE <br>
+                            DISTILBERT OUTPUT: NEGATIVE <br>
+                            FAILURE PROBABILITY: 0.8601 <br>
+                            META-MODEL WARNING TRIGGERED
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+            </div>
+
+        </div>
+
+        </div>
+
+    </div>
+
+
+    <script>
+
+        function openTab(event, id) {
+
+            const tabs = document.querySelectorAll('.tab');
+
+            tabs.forEach(tab => {
+                tab.classList.remove('active');
+            });
+
+
+            const buttons = document.querySelectorAll('.menu-btn');
+
+            buttons.forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+
+            document.getElementById(id)
+                    .classList.add('active');
+
+
+            event.currentTarget
+                 .classList.add('active');
+
+        }
+
+    </script>
+
+</body>
+
+</html>

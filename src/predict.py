@@ -1,114 +1,119 @@
-import argparse
 import joblib
-import torch
-import torch.nn.functional as F
-import numpy as np
-from transformers import AutoTokenizer, AutoModelForSequenceClassification
-from nltk.sentiment import SentimentIntensityAnalyzer
-import nltk
-nltk.download('vader_lexicon')
+import pandas as pd
 
-# Load saved artifacts
-tfidf = joblib.load("artifacts/tfidf.pkl")
-lr_model = joblib.load("artifacts/lr_model.pkl")
-meta_model = joblib.load("artifacts/meta_model.pkl")
+from src.models.vader_model import get_vader_prediction
+from src.models.lr_model import get_lr_prediction
+from src.models.bert_model import get_bert_prediction
 
-# Load transformer
-from functools import lru_cache
 
-@lru_cache()
-def load_transformer():
-    tokenizer = AutoTokenizer.from_pretrained(
-        "distilbert-base-uncased-finetuned-sst-2-english"
+# Load trained meta-model
+meta_model = joblib.load(
+    "artifacts/meta_model.pkl"
+)
+
+
+def predict_failure(text):
+
+    # ---------------- Base Models ----------------
+
+    vader_pred, vader_score = get_vader_prediction(text)
+
+    lr_pred, lr_confidence = get_lr_prediction(text)
+
+    bert_pred, bert_confidence, bert_entropy = (
+        get_bert_prediction(text)
     )
-    model = AutoModelForSequenceClassification.from_pretrained(
-        "distilbert-base-uncased-finetuned-sst-2-english"
+
+
+    # ---------------- Disagreement ----------------
+
+    vader_lr_disagreement = int(
+        vader_pred != lr_pred
     )
-    model.eval()
-    return tokenizer, model
 
-tokenizer, transformer = load_transformer()
+    lr_bert_disagreement = int(
+        lr_pred != bert_pred
+    )
 
-vader = SentimentIntensityAnalyzer()
+    vader_bert_disagreement = int(
+        vader_pred != bert_pred
+    )
 
-def vader_predict(text):
-    score = vader.polarity_scores(text)["compound"]
-    pred = 1 if score >= 0 else 0
-    conf = abs(score)
-    return pred, conf
 
-def tfidf_predict(text):
-    vec = tfidf.transform([text])
-    pred = lr_model.predict(vec)[0]
-    conf = max(lr_model.predict_proba(vec)[0])
-    return pred, conf
+    # ---------------- Feature Vector ----------------
 
-def transformer_predict(text):
-    inputs = tokenizer(text, return_tensors="pt", truncation=True)
-    with torch.no_grad():
-        outputs = transformer(**inputs)
-    probs = F.softmax(outputs.logits, dim=1)[0]
-    pred = torch.argmax(probs).item()
-    conf = torch.max(probs).item()
-    return pred, conf
+    features = pd.DataFrame([{
+        "vader_pred": vader_pred,
+        "vader_score": vader_score,
+        "lr_pred": lr_pred,
+        "lr_confidence": lr_confidence,
+        "bert_pred": bert_pred,
+        "bert_confidence": bert_confidence,
+        "bert_entropy": bert_entropy,
+        "vader_lr_disagreement": vader_lr_disagreement,
+        "lr_bert_disagreement": lr_bert_disagreement,
+        "vader_bert_disagreement": vader_bert_disagreement
+    }])
 
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--text", type=str, required=True)
-    args = parser.parse_args()
 
-    text = args.text
+    # ---------------- Meta Prediction ----------------
 
-    v_pred, v_conf = vader_predict(text)
-    t_pred, t_conf = tfidf_predict(text)
-    tr_pred, tr_conf = transformer_predict(text)
+    failure_probability = meta_model.predict_proba(
+        features
+    )[0][1]
 
-    preds = [v_pred, t_pred, tr_pred]
-    confs = [v_conf, t_conf, tr_conf]
 
-    disagreement = len(set(preds)) / 3
-    conf_std = np.std(confs)
+    warning = (
+        "TRANSFORMER MAY FAIL"
+        if failure_probability >= 0.5
+        else "Prediction appears reliable"
+    )
 
-    features = [[
-        v_conf,
-        t_conf,
-        tr_conf,
-        disagreement,
-        conf_std
-    ]]
 
-    risk_prob = meta_model.predict_proba(features)[0][1]
-    risk_label = "HIGH" if risk_prob > 0.5 else "LOW"
-
-    print("\n=== Results ===")
-    print("Transformer Prediction:", "Positive" if tr_pred == 1 else "Negative")
-    print("Transformer Confidence:", round(tr_conf, 4))
-    print("Failure Risk:", risk_label)
-
-if __name__ == "__main__":
-    main()
-
-def predict_text(text):
-    v_pred, v_conf = vader_predict(text)
-    t_pred, t_conf = tfidf_predict(text)
-    tr_pred, tr_conf = transformer_predict(text)
-
-    preds = [v_pred, t_pred, tr_pred]
-    confs = [v_conf, t_conf, tr_conf]
-
-    disagreement = len(set(preds)) / 3
-    conf_std = np.std(confs)
-
-    features = [[v_conf, t_conf, tr_conf, disagreement, conf_std]]
-
-    risk_prob = meta_model.predict_proba(features)[0][1]
+    # ---------------- Return Structured Results ----------------
 
     return {
-        "sentiment": "Positive" if tr_pred == 1 else "Negative",
-        "risk": risk_prob,
-        "transformer_conf": tr_conf,
-        "vader_conf": v_conf,
-        "tfidf_conf": t_conf
+
+        "text": text,
+
+        "vader_prediction": vader_pred,
+
+        "lr_prediction": lr_pred,
+
+        "bert_prediction": bert_pred,
+
+        "bert_confidence": round(
+            bert_confidence,
+            4
+        ),
+
+        "bert_entropy": round(
+            bert_entropy,
+            4
+        ),
+
+        "failure_probability": round(
+            failure_probability,
+            4
+        ),
+
+        "warning": warning
     }
 
 
+if __name__ == "__main__":
+
+    while True:
+
+        text = input("\nEnter text: ")
+
+        if text.lower() == "exit":
+            break
+
+        result = predict_failure(text)
+
+        print("\nRESULT:\n")
+
+        for key, value in result.items():
+
+            print(f"{key}: {value}")
