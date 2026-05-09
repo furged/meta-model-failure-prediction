@@ -1,87 +1,33 @@
-# Meta-Learning for Transformer Failure Prediction
+# Transformer Failure Prediction System
 
 ## Overview
 
-Transformer models are often highly confident even when incorrect.
-This project builds a meta-learning system that predicts when a fine-tuned
-DistilBERT sentiment classifier is likely to fail.
+Modern transformer models are often highly confident even when incorrect.
+This project builds an uncertainty-aware meta-learning system that predicts when a DistilBERT sentiment classifier is likely to fail under noisy or adversarial text conditions.
 
-The focus is not improving sentiment accuracy, but improving model reliability.
+Instead of improving sentiment classification accuracy itself, the project focuses on a harder and more practical problem:
 
----
+> Can we predict when the AI model should NOT be trusted?
 
-## Problem Statement
-
-Deep learning models can be overconfident.
-In real-world systems, detecting when a model may fail is often more valuable
-than raw accuracy.
-
-This project predicts transformer failure using:
-- Confidence scores
-- Cross-model disagreement
-- Auxiliary model predictions
-
----
-
-## Methodology
-
-### Base Models
-- VADER (rule-based sentiment)
+The system combines:
+- DistilBERT
+- VADER
 - TF-IDF + Logistic Regression
-- DistilBERT (SST-2 fine-tuned)
+- Entropy-based uncertainty analysis
+- Cross-model disagreement signals
+- Adversarial robustness testing
 
-### Meta-Features
-For each input:
-- VADER prediction + confidence
-- TF-IDF prediction + confidence
-- Transformer confidence
-- Disagreement signals
-
-### Target
-Binary label indicating whether the transformer prediction was incorrect.
-
-### Meta-Classifier
-Logistic Regression with class balancing.
+to detect transformer instability before complete prediction failure.
 
 ---
 
-## Dataset
+# Why This Project Matters
 
-- SST-2 (Stanford Sentiment Treebank)
-- Meta-dataset constructed from 500 samples
+Transformer models can silently fail while remaining extremely confident.
 
----
+For example:
 
-## How to Run
-
-```bash
-python3.11 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-python predict.py --text "This movie was painfully boring"
-
-#exmple output
-=== Results ===
-Transformer Prediction: Negative
-Transformer Confidence: 0.9998
-Failure Risk: LOW
-
----
-
-## Interactive Demo
-
-Try the model live with the interactive Streamlit dashboard:
-
-**[Launch Demo](https://your-username-model-failure-prediction.streamlit.app)**
-
-Or run locally:
-```bash
-pip install -r requirements.txt
-streamlit run streamlit_demo.py
-```
-
-The app lets you:
-- Enter sentiment text and see real-time predictions
-- View model agreement across VADER, TF-IDF, and DistilBERT
-- Understand risk factors that contribute to failure detection
-- Explore performance metrics and methodology
+```text
+amazing      → reliable
+amazingg     → warning triggered
+amazinnggg   → transformer failure
