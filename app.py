@@ -1,5 +1,10 @@
 from flask import Flask, render_template, request
 
+from src.predict import predict_failure
+
+import os
+
+
 app = Flask(__name__)
 
 
@@ -8,27 +13,37 @@ def home():
 
     result = None
 
+    input_text = ""
+
     if request.method == "POST":
 
-        text = request.form["text"]
+        input_text = request.form.get("text", "")
 
-        from src.predict import predict_failure
-
-        result = predict_failure(text)
+        result = predict_failure(input_text)
 
     return render_template(
+
         "index.html",
-        result=result
+
+        result=result,
+
+        input_text=input_text
+
     )
 
 
-import os
-
 if __name__ == "__main__":
 
-    port = int(os.environ.get("PORT", 10000))
+    port = int(
+        os.environ.get("PORT", 10000)
+    )
 
     app.run(
+
         host="0.0.0.0",
-        port=port
+
+        port=port,
+
+        debug=True
+
     )

@@ -14,7 +14,6 @@ meta_model = joblib.load(
 
 def predict_failure(text):
 
-    # ---------------- Base Models ----------------
 
     vader_pred, vader_score = get_vader_prediction(text)
 
@@ -24,8 +23,6 @@ def predict_failure(text):
         get_bert_prediction(text)
     )
 
-
-    # ---------------- Disagreement ----------------
 
     vader_lr_disagreement = int(
         vader_pred != lr_pred
@@ -39,8 +36,6 @@ def predict_failure(text):
         vader_pred != bert_pred
     )
 
-
-    # ---------------- Feature Vector ----------------
 
     features = pd.DataFrame([{
         "vader_pred": vader_pred,
@@ -56,8 +51,6 @@ def predict_failure(text):
     }])
 
 
-    # ---------------- Meta Prediction ----------------
-
     failure_probability = meta_model.predict_proba(
         features
     )[0][1]
@@ -69,36 +62,44 @@ def predict_failure(text):
         else "Prediction appears reliable"
     )
 
-
-    # ---------------- Return Structured Results ----------------
-
     return {
 
-        "text": text,
+    "text": text,
 
-        "vader_prediction": vader_pred,
+    "vader_prediction": vader_pred,
 
-        "lr_prediction": lr_pred,
+    "lr_prediction": lr_pred,
 
-        "bert_prediction": bert_pred,
+    "bert_prediction": bert_pred,
 
-        "bert_confidence": round(
-            bert_confidence,
-            4
-        ),
+    "bert_confidence": round(
+        bert_confidence,
+        4
+    ),
 
-        "bert_entropy": round(
-            bert_entropy,
-            4
-        ),
+    "lr_confidence": round(
+        lr_confidence,
+        4
+    ),
 
-        "failure_probability": round(
-            failure_probability,
-            4
-        ),
+    "vader_score": round(
+        abs(vader_score),
+        4
+    ),
 
-        "warning": warning
-    }
+    "bert_entropy": round(
+        bert_entropy,
+        4
+    ),
+
+    "failure_probability": round(
+        failure_probability,
+        4
+    ),
+
+    "warning": warning
+
+}
 
 
 if __name__ == "__main__":

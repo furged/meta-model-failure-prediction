@@ -1,43 +1,23 @@
 from transformers import pipeline
-import math
 
 
 classifier = pipeline(
     "sentiment-analysis",
-    model="sshleifer/tiny-distilbert-base-uncased-finetuned-sst2",
-    top_k=None
+    model="distilbert-base-uncased-finetuned-sst-2-english"
 )
-
-
-def calculate_entropy(probabilities):
-
-    entropy = 0
-
-    for p in probabilities:
-
-        entropy -= p * math.log(p + 1e-10)
-
-    return entropy
 
 
 def get_bert_prediction(text):
 
-    results = classifier(text)[0]
+    result = classifier(text)[0]
 
-    probabilities = [r["score"] for r in results]
+    label = result["label"]
 
-    entropy = calculate_entropy(probabilities)
+    confidence = result["score"]
 
-    positive_score = 0
+    prediction = 1 if label == "POSITIVE" else 0
 
-    for r in results:
-
-        if r["label"] == "POSITIVE":
-            positive_score = r["score"]
-
-    prediction = 1 if positive_score >= 0.5 else 0
-
-    confidence = max(probabilities)
+    entropy = 1 - confidence
 
     return prediction, confidence, entropy
 
@@ -46,7 +26,9 @@ if __name__ == "__main__":
 
     text = "this movie was amazing"
 
-    prediction, confidence, entropy = get_bert_prediction(text)
+    prediction, confidence, entropy = (
+        get_bert_prediction(text)
+    )
 
     print("Prediction:", prediction)
 
