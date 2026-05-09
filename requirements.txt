@@ -8,4 +8,3 @@ plotly
 torch
 transformers
 torchvision
-gunicorn
