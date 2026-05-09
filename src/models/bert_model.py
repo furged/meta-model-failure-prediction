@@ -4,7 +4,7 @@ import math
 
 classifier = pipeline(
     "sentiment-analysis",
-    model="distilbert-base-uncased-finetuned-sst-2-english",
+    model="sshleifer/tiny-distilbert-base-uncased-finetuned-sst2",
     top_k=None
 )
 

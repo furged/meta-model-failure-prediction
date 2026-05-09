@@ -9,5 +9,3 @@ transformers
 torchvision
 flask
 vaderSentiment
-matplotlib
-datasets
