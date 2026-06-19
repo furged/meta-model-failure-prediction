@@ -4,12 +4,19 @@ import pandas as pd
 from src.models.vader_model import get_vader_prediction
 from src.models.lr_model import get_lr_prediction
 from src.models.bert_model import get_bert_prediction
+from src.config import META_MODEL_PATH, META_THRESHOLD_PATH
 
 
 # Load trained meta-model
-meta_model = joblib.load(
-    "artifacts/meta_model.pkl"
-)
+meta_model = joblib.load(META_MODEL_PATH)
+
+# Load the decision threshold tuned on the validation set during training
+# (see src/models/meta_model.py). Falls back to 0.5 only if a threshold
+# file isn't present, e.g. on an older artifact set.
+try:
+    FAILURE_THRESHOLD = joblib.load(META_THRESHOLD_PATH)
+except FileNotFoundError:
+    FAILURE_THRESHOLD = 0.5
 
 
 def predict_failure(text):
@@ -58,7 +65,7 @@ def predict_failure(text):
 
     warning = (
         "TRANSFORMER MAY FAIL"
-        if failure_probability >= 0.5
+        if failure_probability >= FAILURE_THRESHOLD
         else "Prediction appears reliable"
     )
 
@@ -94,6 +101,11 @@ def predict_failure(text):
 
     "failure_probability": round(
         failure_probability,
+        4
+    ),
+
+    "failure_threshold": round(
+        FAILURE_THRESHOLD,
         4
     ),
 

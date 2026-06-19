@@ -2,11 +2,11 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import joblib
 
+from src.config import BASE_DATASET_PATH, META_MODEL_PATH
+
 
 # Load dataset
-df = pd.read_csv(
-    "C:\\Users\\chiya\\Documents\\meta-model-failure-prediction\\src\\data\\processed\\base_dataset.csv"
-)
+df = pd.read_csv(BASE_DATASET_PATH)
 
 
 # Feature names
@@ -25,9 +25,7 @@ feature_columns = [
 
 
 # Load trained model
-meta_model = joblib.load(
-    "artifacts/meta_model.pkl"
-)
+meta_model = joblib.load(META_MODEL_PATH)
 
 
 # Extract coefficients

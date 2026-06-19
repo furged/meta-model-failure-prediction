@@ -3,6 +3,7 @@ from src.models.lr_model import get_lr_prediction
 from src.models.bert_model import get_bert_prediction
 
 from src.features.noise import add_noise
+from src.config import BASE_DATASET_PATH
 
 from datasets import load_dataset
 import pandas as pd
@@ -98,7 +99,7 @@ df["bert_failed"] = (
 
 # Save processed dataset
 df.to_csv(
-    "C:\\Users\\chiya\\Documents\\meta-model-failure-prediction\\src\\data\\processed\\base_dataset.csv",
+    BASE_DATASET_PATH,
     index=False
 )
 

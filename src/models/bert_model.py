@@ -1,10 +1,16 @@
 from transformers import pipeline
 
 
+print("Loading DistilBERT sentiment model (first run downloads ~260MB)...")
+
 classifier = pipeline(
     "sentiment-analysis",
-    model="distilbert-base-uncased-finetuned-sst-2-english"
+    model="distilbert-base-uncased-finetuned-sst-2-english",
+    device=-1  # force CPU; avoids trying to find a GPU that isn't there
+              # on most deploy hosts, which can otherwise raise or stall
 )
+
+print("DistilBERT model loaded.")
 
 
 def get_bert_prediction(text):

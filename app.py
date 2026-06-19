@@ -38,12 +38,14 @@ if __name__ == "__main__":
         os.environ.get("PORT", 10000)
     )
 
+    debug_mode = os.environ.get("FLASK_DEBUG", "false").lower() == "true"
+
     app.run(
 
         host="0.0.0.0",
 
         port=port,
 
-        debug=True
+        debug=debug_mode
 
     )

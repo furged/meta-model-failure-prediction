@@ -1,11 +1,11 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 
+from src.config import BASE_DATASET_PATH
+
 
 # Load dataset
-df = pd.read_csv(
-    "C:\\Users\\chiya\\Documents\\meta-model-failure-prediction\\src\\data\\processed\\base_dataset.csv"
-)
+df = pd.read_csv(BASE_DATASET_PATH)
 
 
 # Correct predictions

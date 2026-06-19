@@ -1,12 +1,14 @@
 import joblib
 
+from src.config import TFIDF_PATH, LR_MODEL_PATH
+
 
 # Load saved TF-IDF vectorizer
-tfidf = joblib.load("artifacts/tfidf.pkl")
+tfidf = joblib.load(TFIDF_PATH)
 
 
 # Load trained Logistic Regression model
-lr_model = joblib.load("artifacts/lr_model.pkl")
+lr_model = joblib.load(LR_MODEL_PATH)
 
 
 def get_lr_prediction(text):
