@@ -20,7 +20,8 @@ feature_columns = [
     "bert_entropy",
     "vader_lr_disagreement",
     "lr_bert_disagreement",
-    "vader_bert_disagreement"
+    "vader_bert_disagreement",
+    "has_negative_intensifier"
 ]
 
 

@@ -5,6 +5,7 @@ from src.models.vader_model import get_vader_prediction
 from src.models.lr_model import get_lr_prediction
 from src.models.bert_model import get_bert_prediction
 from src.config import META_MODEL_PATH, META_THRESHOLD_PATH
+from src.features.intensifiers import has_negative_intensifier
 
 
 # Load trained meta-model
@@ -43,6 +44,8 @@ def predict_failure(text):
         vader_pred != bert_pred
     )
 
+    negative_intensifier = has_negative_intensifier(text)
+
 
     features = pd.DataFrame([{
         "vader_pred": vader_pred,
@@ -54,7 +57,8 @@ def predict_failure(text):
         "bert_entropy": bert_entropy,
         "vader_lr_disagreement": vader_lr_disagreement,
         "lr_bert_disagreement": lr_bert_disagreement,
-        "vader_bert_disagreement": vader_bert_disagreement
+        "vader_bert_disagreement": vader_bert_disagreement,
+        "has_negative_intensifier": negative_intensifier
     }])
 
 
@@ -120,6 +124,8 @@ def predict_failure(text):
     "vader_agrees": bool(vader_pred == bert_pred),
 
     "lr_agrees": bool(lr_pred == bert_pred),
+
+    "has_negative_intensifier": bool(negative_intensifier),
 
     "warning": warning
 
