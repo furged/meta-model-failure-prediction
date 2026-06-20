@@ -22,5 +22,6 @@ TFIDF_PATH = os.path.join(ARTIFACTS_DIR, "tfidf.pkl")
 LR_MODEL_PATH = os.path.join(ARTIFACTS_DIR, "lr_model.pkl")
 META_MODEL_PATH = os.path.join(ARTIFACTS_DIR, "meta_model.pkl")
 META_THRESHOLD_PATH = os.path.join(ARTIFACTS_DIR, "meta_threshold.pkl")
+METRICS_PATH = os.path.join(ARTIFACTS_DIR, "metrics.json")
 
 BASE_DATASET_PATH = os.path.join(DATA_PROCESSED_DIR, "base_dataset.csv")

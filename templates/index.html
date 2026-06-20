@@ -1,572 +1,141 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-
-    <meta charset="UTF-8">
-
-    <meta name="viewport"
-        content="width=device-width, initial-scale=1.0">
-
-    <title>Transformer Failure Monitor</title>
-
-    <link rel="stylesheet"
-        href="{{ url_for('static', filename='css/style.css') }}">
-
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;700&family=Orbitron:wght@400;700&display=swap"
-        rel="stylesheet">
-
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sentinel &mdash; Transformer Failure Prediction</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
-
 <body>
 
-    <div class="crt"></div>
+<div class="wrap">
 
-    <div class="noise"></div>
+  <header class="sys-bar">
+    <div class="col">
+      <div><span class="label">SYS.NAME</span> sentinel-ai v1.0</div>
+      <div><span class="label">SYS.NODE</span> meta-model-failure-prediction</div>
+    </div>
+    <div class="col col-right">
+      <div><span class="label">MODEL</span> distilbert-sst2</div>
+      <div><span class="label">STATUS</span> <span id="sys-status" class="status-ok">READY</span></div>
+    </div>
+  </header>
 
-    <div id="boot-screen">
+  <pre class="ascii" aria-hidden="true"> ___ ___ _  _ _____ ___ _  _ ___ _    
+/ __| __| \| |_   _|_ _| \| | __| |   
+\__ \ _|| .` | | |  | || .` | _|| |__ 
+|___/___|_|\_| |_| |___|_|\_|___|____|</pre>
 
-        <div id="boot-text"></div>
+  <p class="prompt-line">$ whoami</p>
+  <p class="body-text">A meta-model that watches a sentiment transformer and predicts when it's about to be wrong &mdash; not just what it predicts, but whether to trust it.</p>
 
+  <section class="section">
+    <div class="section-label">&gt; analyze</div>
+
+    <form id="analyze-form">
+      <textarea
+        id="text-input"
+        class="input-box"
+        placeholder="enter text to analyze..."
+        maxlength="2000"
+        rows="3"
+      ></textarea>
+
+      <div class="run-row">
+        <button type="submit" id="run-btn" class="run-btn">RUN ANALYSIS</button>
+        <span class="hint" id="run-hint">~1-3s on cpu</span>
+      </div>
+    </form>
+
+    <div id="error-box" class="error-box" hidden></div>
+
+    <div id="result-block" class="result-block" hidden>
+      <div id="verdict-banner" class="verdict-banner">
+        <div class="verdict-top">
+          <div id="verdict-dot" class="dot"></div>
+          <span id="verdict-text" class="verdict-text"></span>
+        </div>
+        <div id="verdict-sub" class="verdict-sub"></div>
+      </div>
+
+      <div class="gauge-row">
+        <div class="gauge-wrap">
+          <svg id="gauge-svg" viewBox="0 0 120 120" class="gauge-svg">
+            <circle cx="60" cy="60" r="52" class="gauge-track"></circle>
+            <circle cx="60" cy="60" r="52" id="gauge-fill" class="gauge-fill"></circle>
+          </svg>
+          <div class="gauge-center">
+            <div id="gauge-value" class="gauge-value">0%</div>
+            <div class="gauge-label">failure risk</div>
+          </div>
+        </div>
+
+        <div class="evidence-rows">
+          <div class="result-row">
+            <span class="k">distilbert says</span>
+            <span id="ev-bert" class="v"></span>
+          </div>
+          <div class="result-row">
+            <span class="k">vader</span>
+            <span id="ev-vader" class="v"></span>
+          </div>
+          <div class="result-row">
+            <span class="k">tf-idf + logreg</span>
+            <span id="ev-lr" class="v"></span>
+          </div>
+          <div class="result-row">
+            <span class="k">entropy</span>
+            <span id="ev-entropy" class="v"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-label">&gt; model performance (from held-out test set, never used in training)</div>
+
+    {% if metrics %}
+    <div class="metrics-grid">
+      <div class="metric-cell">
+        <div class="metric-val">{{ "%.2f"|format(metrics.precision) }}</div>
+        <div class="metric-label">precision</div>
+      </div>
+      <div class="metric-cell">
+        <div class="metric-val">{{ "%.2f"|format(metrics.recall) }}</div>
+        <div class="metric-label">recall</div>
+      </div>
+      <div class="metric-cell">
+        <div class="metric-val">{{ "%.2f"|format(metrics.f1) }}</div>
+        <div class="metric-label">f1 score</div>
+      </div>
+      <div class="metric-cell">
+        <div class="metric-val">{{ metrics.test_set_size }}</div>
+        <div class="metric-label">test samples</div>
+      </div>
     </div>
 
-    <div id="main-system">
-
-        <header>
-
-            <div class="title">
-
-                TRANSFORMER FAILURE MONITOR
-
-            </div>
-
-            <div class="subtitle">
-
-                META-LEARNING • ENTROPY ANALYSIS • ADVERSARIAL ROBUSTNESS
-
-            </div>
-
-        </header>
-
-        <aside class="sidebar">
-
-            <div class="panel-title">
-
-                SYSTEM MENU
-
-            </div>
-
-            <button class="menu-btn active"
-                onclick="switchPanel('analyze')">
-
-                > ANALYZE
-
-            </button>
-
-            <button class="menu-btn"
-                onclick="switchPanel('metrics')">
-
-                > METRICS
-
-            </button>
-
-            <button class="menu-btn"
-                onclick="switchPanel('architecture')">
-
-                > ARCHITECTURE
-
-            </button>
-
-            <button class="menu-btn"
-                onclick="switchPanel('dossier')">
-
-                > DOSSIER
-
-            </button>
-
-            <button class="menu-btn"
-                onclick="switchPanel('failures')">
-
-                > FAILURE DATABASE
-
-            </button>
-
-            <button class="menu-btn"
-                onclick="switchPanel('feedback')">
-
-                > TRANSMIT REPORT
-
-            </button>
-
-            <a class="repo-btn"
-                href="https://github.com/furged/meta-model-failure-prediction"
-                target="_blank">
-
-                VIEW SOURCE CODE
-
-            </a>
-
-            <div class="live-status">
-
-                <div>
-
-                    GPU STATUS: ACTIVE
-
-                </div>
-
-                <div>
-
-                    ANOMALY INDEX:
-                    <span id="anomaly">0.271</span>
-
-                </div>
-
-                <div>
-
-                    PIPELINE LOAD:
-                    <span id="load">72%</span>
-
-                </div>
-
-                <div>
-
-                    FAILURE CHANNELS: 3
-
-                </div>
-
-                <div>
-
-                    ENTROPY STREAM: STABLE
-
-                </div>
-
-            </div>
-
-        </aside>
-
-        <main>
-
-            <section id="analyze"
-                class="content-panel active-panel">
-
-                <div class="panel-title">
-
-                    LIVE DIAGNOSTICS
-
-                </div>
-
-                <form method="POST">
-
-                    <textarea
-                        name="text"
-                        placeholder="ENTER TEXT FOR RELIABILITY ANALYSIS..."
-                        required>{{ input_text }}</textarea>
-
-                    <button type="submit">
-
-                        EXECUTE DIAGNOSTICS
-
-                    </button>
-
-                </form>
-
-                {% if result %}
-
-                <div class="results">
-
-                    <div class="result-box">
-
-                        <div class="risk-gauge-container">
-
-                            <div class="risk-gauge">
-
-                                <div class="risk-inner">
-
-                                    <span id="riskPercent">
-
-                                        {{ (result.failure_probability * 100)|round(1) if result else 15 }}
-
-                                    </span>%
-
-                                </div>
-
-                            </div>
-
-                            <div class="risk-label">
-
-                                TRANSFORMER FAILURE RISK
-
-                            </div>
-
-                        </div>
-
-                    </div>
-
-                    <div class="result-box">
-
-                        FAILURE PROBABILITY:
-                        {{ result.failure_probability }}
-
-                    </div>
-
-                    <div class="result-box">
-
-                        ENTROPY:
-                        {{ result.bert_entropy }}
-
-                    </div>
-
-                    <div class="result-box">
-
-                        TRANSFORMER CONFIDENCE:
-                        {{ result.bert_confidence }}
-
-                    </div>
-
-                </div>
-
-                {% endif %}
-
-                <div class="chart-grid">
-
-                    <canvas id="entropyChart"></canvas>
-
-                    <canvas id="confidenceChart"></canvas>
-
-                </div>
-
-            </section>
-
-            <section id="metrics"
-                class="content-panel">
-
-                <div class="panel-title">
-
-                    SYSTEM METRICS
-
-                </div>
-
-                <div class="metric-grid">
-
-                    <div class="metric-card">
-
-                        <div class="metric-value">
-
-                            0.87
-
-                        </div>
-
-                        <div class="metric-label">
-
-                            FAILURE RECALL
-
-                        </div>
-
-                    </div>
-
-                    <div class="metric-card">
-
-                        <div class="metric-value">
-
-                            0.93
-
-                        </div>
-
-                        <div class="metric-label">
-
-                            ROC-AUC
-
-                        </div>
-
-                    </div>
-
-                    <div class="metric-card">
-
-                        <div class="metric-value">
-
-                            5,000
-
-                        </div>
-
-                        <div class="metric-label">
-
-                            ADVERSARIAL SAMPLES
-
-                        </div>
-
-                    </div>
-
-                    <div class="metric-card">
-
-                        <div class="metric-value">
-
-                            10
-
-                        </div>
-
-                        <div class="metric-label">
-
-                            META FEATURES
-
-                        </div>
-
-                    </div>
-
-                </div>
-
-            </section>
-
-            <section id="architecture"
-                class="content-panel">
-
-                <div class="panel-title">
-
-                    RELIABILITY PIPELINE
-
-                </div>
-
-                <div class="architecture-grid">
-
-                    <div class="arch-node">INPUT PROCESSOR</div>
-
-                    <div class="arch-node">DISTILBERT</div>
-
-                    <div class="arch-node">VADER ENGINE</div>
-
-                    <div class="arch-node">TF-IDF ANALYZER</div>
-
-                    <div class="arch-node">ENTROPY ENGINE</div>
-
-                    <div class="arch-node">DISAGREEMENT DETECTOR</div>
-
-                    <div class="arch-node">META-CLASSIFIER</div>
-
-                    <div class="arch-node">FAILURE ESTIMATOR</div>
-
-                </div>
-
-            </section>
-
-            <section id="dossier"
-                class="content-panel">
-
-                <div class="panel-title">
-
-                    PROJECT DOSSIER
-
-                </div>
-
-                <div class="dossier">
-
-                    <h2>
-
-                        RESEARCH OBJECTIVE
-
-                    </h2>
-
-                    <p>
-
-                        This system studies transformer instability under
-                        adversarial perturbations and predicts when
-                        transformer outputs should not be trusted.
-
-                    </p>
-
-                    <h2>
-
-                        KEY FINDINGS
-
-                    </h2>
-
-                    <ul>
-
-                        <li>
-                            Transformer entropy emerged as a major reliability signal.
-                        </li>
-
-                        <li>
-                            High-confidence incorrect predictions occurred repeatedly.
-                        </li>
-
-                        <li>
-                            Cross-model disagreement significantly improved failure detection.
-                        </li>
-
-                        <li>
-                            Tiny spelling perturbations destabilized transformer outputs.
-                        </li>
-
-                    </ul>
-
-                    <h2>
-
-                        DATASET STATISTICS
-
-                    </h2>
-
-                    <ul>
-
-                        <li>SST-2 Sentiment Dataset</li>
-
-                        <li>5,000 adversarial samples</li>
-
-                        <li>TF-IDF dimensionality: 5,000</li>
-
-                        <li>1–2 gram tokenization</li>
-
-                        <li>Failure Recall: 0.87</li>
-
-                        <li>ROC-AUC: 0.93</li>
-
-                    </ul>
-
-                </div>
-
-            </section>
-
-            <section id="failures"
-                class="content-panel">
-
-                <div class="panel-title">
-
-                    FAILURE DATABASE
-
-                </div>
-
-                <div class="failure-case">
-
-                    <div>
-
-                        INPUT:
-                        that was so amazinnggg
-
-                    </div>
-
-                    <div>
-
-                        FAILURE TYPE:
-                        TOKENIZATION INSTABILITY
-
-                    </div>
-
-                    <div>
-
-                        FAILURE PROBABILITY:
-                        0.8601
-
-                    </div>
-
-                </div>
-
-            </section>
-
-            <section id="feedback"
-                class="content-panel">
-
-                <div class="panel-title">
-
-                    TRANSMIT FEEDBACK
-
-                </div>
-
-                <form class="feedback-form">
-
-                    <input
-                        type="text"
-                        placeholder="ENTER NAME">
-
-                    <textarea
-                        placeholder="TRANSMIT SYSTEM FEEDBACK"></textarea>
-
-                    <button type="submit">
-
-                        TRANSMIT REPORT
-
-                    </button>
-
-                </form>
-
-            </section>
-
-        </main>
-
-        <section class="terminal-feed">
-
-            <div class="panel-title">
-
-                LIVE SYSTEM LOGS
-
-            </div>
-
-            <div id="logs">
-
-                <div>
-
-                    [22:41:01] entropy spike detected
-
-                </div>
-
-                <div>
-
-                    [22:41:04] disagreement threshold exceeded
-
-                </div>
-
-                <div>
-
-                    [22:41:08] transformer instability warning
-
-                </div>
-
-            </div>
-
-        </section>
-
+    <div class="chart-card">
+      <div class="chart-title">precision &ndash; recall tradeoff</div>
+      <svg id="pr-chart" viewBox="0 0 400 260" class="pr-svg" preserveAspectRatio="xMidYMid meet"></svg>
+      <div class="chart-caption">current threshold marked &middot; moving it trades precision for recall</div>
     </div>
+    {% else %}
+    <p class="body-text">Metrics not available &mdash; run the training script to generate them.</p>
+    {% endif %}
+  </section>
 
-    <script>
+  <footer class="footer-line">
+    <span>sentinel-ai</span>
+    <a href="https://github.com/furged/meta-model-failure-prediction" target="_blank" rel="noopener">view source &rarr;</a>
+  </footer>
 
-        const backendData = {
+</div>
 
-            {% if result %}
-
-            entropy:
-                {{ result.bert_entropy }},
-
-            bertConfidence:
-                {{ result.bert_confidence }},
-
-            lrConfidence:
-                {{ result.lr_confidence }},
-
-            vaderConfidence:
-                {{ result.vader_score }},
-
-            failureProbability:
-                {{ result.failure_probability }}
-
-            {% else %}
-
-            entropy: 0.25,
-
-            bertConfidence: 0.90,
-
-            lrConfidence: 0.81,
-
-            vaderConfidence: 0.72,
-
-            failureProbability: 0.15
-
-            {% endif %}
-
-        };
-
-    </script>
-
-    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
-
+<script id="metrics-data" type="application/json">{{ metrics | tojson if metrics else 'null' }}</script>
+<script src="{{ url_for('static', filename='js/script.js') }}"></script>
 </body>
-
 </html>

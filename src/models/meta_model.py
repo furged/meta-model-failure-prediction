@@ -28,6 +28,7 @@ This script:
      (src/predict.py) doesn't hardcode 0.5.
 """
 
+import json
 import numpy as np
 import pandas as pd
 import joblib
@@ -37,7 +38,12 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.calibration import CalibratedClassifierCV
 from sklearn.metrics import classification_report, precision_recall_curve
 
-from src.config import BASE_DATASET_PATH, META_MODEL_PATH, META_THRESHOLD_PATH
+from src.config import (
+    BASE_DATASET_PATH,
+    META_MODEL_PATH,
+    META_THRESHOLD_PATH,
+    METRICS_PATH
+)
 
 
 # Load dataset
@@ -128,6 +134,63 @@ print("\nTest set classification report (threshold applied):\n")
 print(classification_report(
     y_test, test_preds, target_names=["No Failure", "Failure"]
 ))
+
+
+# ---------------- Export metrics + PR curve for the web UI ----------------
+#
+# The frontend needs real numbers to render the precision-recall curve and
+# the headline stats -- rather than hand-typing values into a template
+# (which is how the old UI ended up showing fabricated 0.87/0.93 numbers
+# that didn't match the actual model), we compute everything here, on the
+# untouched test set, and write it to a small JSON file that app.py reads
+# at startup. Retraining the model automatically updates what the UI shows.
+
+test_precision, test_recall, test_pr_thresholds = precision_recall_curve(
+    y_test, test_probs
+)
+
+# Downsample the curve to ~50 points for a lightweight chart -- the full
+# curve can have hundreds of points (one per unique probability value),
+# which is overkill for a UI chart and bloats the JSON for no visual gain.
+n_points = len(test_precision)
+if n_points > 50:
+    sample_idx = np.linspace(0, n_points - 1, 50).astype(int)
+else:
+    sample_idx = np.arange(n_points)
+
+pr_curve_points = [
+    {
+        "precision": round(float(test_precision[i]), 4),
+        "recall": round(float(test_recall[i]), 4)
+    }
+    for i in sample_idx
+]
+
+test_precision_at_threshold = float(
+    (test_preds[y_test == 1] == 1).sum() / max(test_preds.sum(), 1)
+)
+test_recall_at_threshold = float(
+    (test_preds[y_test == 1] == 1).sum() / max((y_test == 1).sum(), 1)
+)
+test_f1_at_threshold = (
+    2 * test_precision_at_threshold * test_recall_at_threshold
+    / max(test_precision_at_threshold + test_recall_at_threshold, 1e-12)
+)
+
+metrics_export = {
+    "threshold": round(float(best_threshold), 4),
+    "test_set_size": int(len(y_test)),
+    "test_failure_rate": round(float(y_test.mean()), 4),
+    "precision": round(test_precision_at_threshold, 4),
+    "recall": round(test_recall_at_threshold, 4),
+    "f1": round(test_f1_at_threshold, 4),
+    "pr_curve": pr_curve_points
+}
+
+with open(METRICS_PATH, "w") as f:
+    json.dump(metrics_export, f, indent=2)
+
+print(f"\nMetrics + PR curve exported to {METRICS_PATH}")
 
 
 # ---------------- Save model + threshold ----------------

@@ -73,41 +73,53 @@ def predict_failure(text):
 
     "text": text,
 
-    "vader_prediction": vader_pred,
+    "vader_prediction": int(vader_pred),
 
-    "lr_prediction": lr_pred,
+    "lr_prediction": int(lr_pred),
 
-    "bert_prediction": bert_pred,
+    "bert_prediction": int(bert_pred),
+
+    "bert_label": "positive" if bert_pred == 1 else "negative",
+
+    "vader_label": "positive" if vader_pred == 1 else "negative",
+
+    "lr_label": "positive" if lr_pred == 1 else "negative",
 
     "bert_confidence": round(
-        bert_confidence,
+        float(bert_confidence),
         4
     ),
 
     "lr_confidence": round(
-        lr_confidence,
+        float(lr_confidence),
         4
     ),
 
     "vader_score": round(
-        abs(vader_score),
+        float(abs(vader_score)),
         4
     ),
 
     "bert_entropy": round(
-        bert_entropy,
+        float(bert_entropy),
         4
     ),
 
     "failure_probability": round(
-        failure_probability,
+        float(failure_probability),
         4
     ),
 
     "failure_threshold": round(
-        FAILURE_THRESHOLD,
+        float(FAILURE_THRESHOLD),
         4
     ),
+
+    "is_failure_risk": bool(failure_probability >= FAILURE_THRESHOLD),
+
+    "vader_agrees": bool(vader_pred == bert_pred),
+
+    "lr_agrees": bool(lr_pred == bert_pred),
 
     "warning": warning
 

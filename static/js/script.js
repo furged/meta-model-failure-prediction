@@ -1,395 +1,221 @@
-const bootMessages = [
+// Sentinel AI -- frontend logic.
+// Talks to the real Flask API (/api/analyze, metrics from the page itself).
+// No fabricated numbers anywhere in this file -- every value rendered
+// here either comes from the server response or is a fixed UI constant
+// (like the SVG circle's circumference).
 
-    "INITIALIZING META-RELIABILITY ENGINE...",
-    "LOADING TRANSFORMER WEIGHTS...",
-    "CALIBRATING ENTROPY DETECTORS...",
-    "CONNECTING FAILURE PIPELINE...",
-    "LOADING ADVERSARIAL DATABASE...",
-    "SYNCHRONIZING META-CLASSIFIER...",
-    "SYSTEM READY"
+const GAUGE_CIRCUMFERENCE = 2 * Math.PI * 52; // matches r=52 in the SVG
 
-];
-
-const bootText =
-    document.getElementById("boot-text");
-
-const bootScreen =
-    document.getElementById("boot-screen");
-
-const mainSystem =
-    document.getElementById("main-system");
-
-
-let bootIndex = 0;
-
-function showBootMessage() {
-
-    if (bootIndex < bootMessages.length) {
-
-        bootText.innerHTML +=
-            bootMessages[bootIndex] + "<br><br>";
-
-        bootIndex++;
-
-        setTimeout(showBootMessage, 700);
-
-    }
-
-    else {
-
-        setTimeout(() => {
-
-            bootScreen.style.display = "none";
-
-            mainSystem.style.display = "block";
-
-        }, 1200);
-
-    }
-
+function $(id) {
+  return document.getElementById(id);
 }
 
-if (!sessionStorage.getItem("booted")) {
+// ---------------- Analyze flow ----------------
 
-    showBootMessage();
+const form = $('analyze-form');
+const textInput = $('text-input');
+const runBtn = $('run-btn');
+const runHint = $('run-hint');
+const errorBox = $('error-box');
+const resultBlock = $('result-block');
 
-    sessionStorage.setItem("booted", "true");
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
 
-}
+  const text = textInput.value.trim();
 
-else {
+  if (!text) {
+    showError('Please enter some text to analyze.');
+    return;
+  }
 
-    bootScreen.style.display = "none";
+  setLoading(true);
+  hideError();
 
-    mainSystem.style.display = "block";
-
-}
-
-
-function switchPanel(panelId) {
-
-    const panels =
-        document.querySelectorAll(".content-panel");
-
-    panels.forEach(panel => {
-
-        panel.classList.remove("active-panel");
-
+  try {
+    const res = await fetch('/api/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text })
     });
 
-    document
-        .getElementById(panelId)
-        .classList.add("active-panel");
+    const data = await res.json();
 
-    const buttons =
-        document.querySelectorAll(".menu-btn");
-
-    buttons.forEach(btn => {
-
-        btn.classList.remove("active");
-
-    });
-
-    event.target.classList.add("active");
-
-}
-
-
-function randomFloat(min, max, decimals = 3) {
-
-    return (
-        Math.random() * (max - min) + min
-    ).toFixed(decimals);
-
-}
-
-
-function updateTelemetry() {
-
-    document.getElementById("anomaly")
-        .innerText =
-        randomFloat(0.200, 0.900);
-
-    document.getElementById("load")
-        .innerText =
-        Math.floor(Math.random() * 100) + "%";
-
-}
-
-setInterval(updateTelemetry, 1200);
-
-
-const logContainer =
-    document.getElementById("logs");
-
-const logMessages = [
-
-    `entropy level detected: ${backendData.entropy}`,
-
-    `failure probability: ${backendData.failureProbability}`,
-
-    `bert confidence stabilized at ${backendData.bertConfidence}`,
-
-    `cross-model disagreement analysis complete`,
-
-    `meta-classifier confidence updated`,
-
-    `adversarial drift scan complete`,
-
-    `entropy threshold recalibrated`,
-
-    `prediction reliability pipeline active`
-
-];
-
-
-function generateLog() {
-
-    const div =
-        document.createElement("div");
-
-    const now =
-        new Date();
-
-    const time =
-        now.toLocaleTimeString();
-
-    const randomMessage =
-        logMessages[
-            Math.floor(
-                Math.random() * logMessages.length
-            )
-        ];
-
-    div.innerText =
-        `[${time}] ${randomMessage}`;
-
-    logContainer.prepend(div);
-
-    if (logContainer.children.length > 20) {
-
-        logContainer.removeChild(
-            logContainer.lastChild
-        );
-
+    if (!res.ok) {
+      showError(data.error || 'Something went wrong. Please try again.');
+      setLoading(false);
+      return;
     }
 
-}
-
-setInterval(generateLog, 1800);
-
-
-const entropyCtx =
-    document.getElementById("entropyChart");
-
-new Chart(entropyCtx, {
-
-    type: "line",
-
-    data: {
-
-        labels: [
-            "T1",
-            "T2",
-            "T3",
-            "T4",
-            "T5",
-            "T6"
-        ],
-
-        datasets: [{
-
-            label: "Entropy Drift",
-
-    data: [
-
-    backendData.entropy * 200,
-
-    backendData.entropy * 350,
-
-    backendData.entropy * 500,
-
-    backendData.entropy * 700,
-
-    backendData.entropy * 900,
-
-    backendData.entropy * 600
-
-],
-
-            borderColor: "white",
-
-            borderWidth: 2
-
-        }]
-
-    },
-
-    options: {
-
-        responsive: true,
-        maintainAspectRatio: false,
-
-        plugins: {
-
-            legend: {
-
-                labels: {
-
-                    color: "white"
-
-                }
-
-            }
-
-        },
-
-        scales: {
-
-            x: {
-
-                ticks: {
-
-                    color: "white"
-
-                }
-
-            },
-
-            y: {
-
-                ticks: {
-
-                    color: "white"
-
-                }
-
-            }
-
-        }
-
-    }
-
+    renderResult(data);
+  } catch (err) {
+    showError('Could not reach the server. Check your connection and try again.');
+  } finally {
+    setLoading(false);
+  }
 });
 
+function setLoading(isLoading) {
+  runBtn.disabled = isLoading;
+  runBtn.textContent = isLoading ? 'ANALYZING...' : 'RUN ANALYSIS';
+  runHint.textContent = isLoading ? 'running on cpu, hang tight' : '~1-3s on cpu';
+  $('sys-status').textContent = isLoading ? 'BUSY' : 'READY';
+  $('sys-status').className = isLoading ? 'status-warn' : 'status-ok';
+}
 
-const confidenceCtx =
-    document.getElementById("confidenceChart");
+function showError(msg) {
+  errorBox.textContent = msg;
+  errorBox.hidden = false;
+}
 
-new Chart(confidenceCtx, {
+function hideError() {
+  errorBox.hidden = true;
+}
 
-    type: "bar",
+function renderResult(data) {
+  resultBlock.hidden = false;
 
-    data: {
+  // Verdict banner
+  const banner = $('verdict-banner');
+  const dot = $('verdict-dot');
+  const text = $('verdict-text');
+  const sub = $('verdict-sub');
 
-        labels: [
+  if (data.is_failure_risk) {
+    banner.className = 'verdict-banner warn';
+    dot.className = 'dot warn';
+    text.className = 'verdict-text warn';
+    text.textContent = data.warning;
+  } else {
+    banner.className = 'verdict-banner ok';
+    dot.className = 'dot ok';
+    text.className = 'verdict-text';
+    text.textContent = data.warning;
+  }
 
-            "VADER",
-            "TF-IDF",
-            "BERT"
+  sub.textContent =
+    `failure probability ${data.failure_probability.toFixed(3)} \u00b7 threshold ${data.failure_threshold.toFixed(3)}`;
 
-        ],
+  // Gauge: animate stroke-dashoffset to reflect failure_probability (0-1)
+  const gaugeFill = $('gauge-fill');
+  const gaugeValue = $('gauge-value');
+  const pct = Math.max(0, Math.min(1, data.failure_probability));
+  const offset = GAUGE_CIRCUMFERENCE * (1 - pct);
 
-        datasets: [{
+  // Force reflow so the transition always plays, even if two analyses
+  // in a row land on a similar percentage
+  gaugeFill.style.transition = 'none';
+  gaugeFill.style.strokeDashoffset = GAUGE_CIRCUMFERENCE;
+  void gaugeFill.offsetWidth;
+  gaugeFill.style.transition = '';
+  gaugeFill.style.strokeDashoffset = offset;
+  gaugeFill.style.stroke = data.is_failure_risk ? '#fbbf24' : '#4ade80';
 
-            label: "Confidence",
+  gaugeValue.textContent = `${Math.round(pct * 100)}%`;
 
-            data: [
+  // Evidence rows
+  $('ev-bert').textContent = `${data.bert_label} (${(data.bert_confidence * 100).toFixed(1)}% confident)`;
+  $('ev-bert').className = 'v ' + (data.bert_label === 'positive' ? 'pos' : 'neg');
 
-    backendData.vaderConfidence,
+  $('ev-vader').textContent = data.vader_agrees
+    ? `agrees \u00b7 ${data.vader_label}`
+    : `disagrees \u00b7 ${data.vader_label}`;
+  $('ev-vader').className = 'v ' + (data.vader_label === 'positive' ? 'pos' : 'neg');
 
-    backendData.lrConfidence,
+  $('ev-lr').textContent = data.lr_agrees
+    ? `agrees \u00b7 ${data.lr_label}`
+    : `disagrees \u00b7 ${data.lr_label}`;
+  $('ev-lr').className = 'v ' + (data.lr_label === 'positive' ? 'pos' : 'neg');
 
-    backendData.bertConfidence
+  $('ev-entropy').textContent = data.bert_entropy.toFixed(3);
+  $('ev-entropy').className = 'v';
 
-],
+  resultBlock.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
 
-            backgroundColor: [
+// ---------------- Precision-Recall chart (real data, rendered once) ----------------
 
-                "rgba(255,255,255,0.3)",
-                "rgba(255,255,255,0.5)",
-                "rgba(255,255,255,0.8)"
+function renderPRChart() {
+  const dataEl = $('metrics-data');
+  const chartEl = $('pr-chart');
 
-            ],
+  if (!dataEl || !chartEl) return;
 
-            borderColor: "white",
+  let metrics;
+  try {
+    metrics = JSON.parse(dataEl.textContent);
+  } catch (e) {
+    return;
+  }
 
-            borderWidth: 2
+  if (!metrics || !metrics.pr_curve || metrics.pr_curve.length === 0) return;
 
-        }]
+  const points = metrics.pr_curve;
+  const width = 400;
+  const height = 260;
+  const padding = { top: 12, right: 16, bottom: 36, left: 48 };
+  const plotW = width - padding.left - padding.right;
+  const plotH = height - padding.top - padding.bottom;
 
-    },
+  function xPos(recall) {
+    return padding.left + recall * plotW;
+  }
+  function yPos(precision) {
+    return padding.top + (1 - precision) * plotH;
+  }
 
-    options: {
+  // Build the path for the PR curve, sorted by recall ascending so the
+  // line draws left-to-right without crossing back on itself.
+  const sorted = [...points].sort((a, b) => a.recall - b.recall);
+  const pathD = sorted
+    .map((p, i) => `${i === 0 ? 'M' : 'L'} ${xPos(p.recall).toFixed(1)} ${yPos(p.precision).toFixed(1)}`)
+    .join(' ');
 
-        responsive: true,
-        maintainAspectRatio: false,
+  // Axis lines + ticks
+  let svg = '';
 
-        plugins: {
+  // Gridlines at 0.25 / 0.5 / 0.75 / 1.0
+  [0, 0.25, 0.5, 0.75, 1].forEach((t) => {
+    const y = yPos(t);
+    svg += `<line x1="${padding.left}" y1="${y.toFixed(1)}" x2="${width - padding.right}" y2="${y.toFixed(1)}" stroke="#1a1a1a" stroke-width="1" />`;
+    svg += `<text x="${padding.left - 8}" y="${(y + 3).toFixed(1)}" text-anchor="end" font-size="11" fill="#6b6b6b" font-family="JetBrains Mono, monospace">${t}</text>`;
+  });
 
-            legend: {
+  [0, 0.25, 0.5, 0.75, 1].forEach((t) => {
+    const x = xPos(t);
+    svg += `<text x="${x.toFixed(1)}" y="${height - padding.bottom + 18}" text-anchor="middle" font-size="11" fill="#6b6b6b" font-family="JetBrains Mono, monospace">${t}</text>`;
+  });
 
-                labels: {
+  svg += `<text x="${padding.left + plotW / 2}" y="${height - 4}" text-anchor="middle" font-size="12" fill="#4a4a4a" font-family="JetBrains Mono, monospace">recall</text>`;
+  svg += `<text x="14" y="${padding.top + plotH / 2}" text-anchor="middle" font-size="12" fill="#4a4a4a" font-family="JetBrains Mono, monospace" transform="rotate(-90 14 ${padding.top + plotH / 2})">precision</text>`;
 
-                    color: "white"
+  // The curve itself
+  svg += `<path d="${pathD}" fill="none" stroke="#4ade80" stroke-width="1" />`;
 
-                }
-
-            }
-
-        },
-
-        scales: {
-
-            x: {
-
-                ticks: {
-
-                    color: "white"
-
-                }
-
-            },
-
-            y: {
-
-                ticks: {
-
-                    color: "white"
-
-                }
-
-            }
-
-        }
-
+  // Mark the operating point at the chosen threshold. Rather than using
+  // metrics.precision/metrics.recall directly (computed separately during
+  // training, via predict>=threshold on the test set), find the closest
+  // point that's actually ON the rendered curve -- the two calculations
+  // are mathematically related but not numerically identical, so using
+  // the raw threshold values could place the marker slightly off the
+  // line. Snapping to the nearest real curve point guarantees it sits
+  // exactly on the line.
+  let closest = sorted[0];
+  let closestDist = Infinity;
+  for (const p of sorted) {
+    const d = Math.abs(p.recall - metrics.recall) + Math.abs(p.precision - metrics.precision);
+    if (d < closestDist) {
+      closestDist = d;
+      closest = p;
     }
+  }
+  const opX = xPos(closest.recall);
+  const opY = yPos(closest.precision);
 
-});
+  svg += `<circle cx="${opX.toFixed(1)}" cy="${opY.toFixed(1)}" r="2.5" fill="#fbbf24" />`;
+  svg += `<text x="${opX.toFixed(1)}" y="${(opY - 10).toFixed(1)}" text-anchor="middle" font-size="11" fill="#fbbf24" font-family="JetBrains Mono, monospace">current threshold</text>`;
 
-
-function flickerEffect() {
-
-    document.body.style.opacity =
-        Math.random() > 0.97
-            ? "0.96"
-            : "1";
-
+  chartEl.innerHTML = svg;
 }
 
-setInterval(flickerEffect, 100);
-
-const gauge =
-    document.querySelector(".risk-gauge");
-
-if (gauge) {
-
-    gauge.style.setProperty(
-
-        "--risk",
-
-        backendData.failureProbability * 100
-
-    );
-
-}
+renderPRChart();
