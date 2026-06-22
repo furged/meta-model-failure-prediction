@@ -90,7 +90,6 @@ a { color: inherit; }
 .body-text {
   color: #a3a3a3;
   margin-bottom: clamp(20px, 4vw, 24px);
-  max-width: 620px;
   font-size: 0.95rem;
 }
 
@@ -384,6 +383,154 @@ a { color: inherit; }
 }
 
 .footer-line a:hover { color: #4ade80; }
+
+.footer-icons {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+}
+
+.footer-icons a {
+  display: flex;
+  color: #4a4a4a;
+  transition: color 0.15s ease;
+}
+
+.footer-icons a:hover { color: #4ade80; }
+
+/* ---------------- Tabs ---------------- */
+
+.tab-nav {
+  display: flex;
+  gap: 4px;
+  margin-bottom: clamp(20px, 4vw, 28px);
+  border-bottom: 1px solid #1f1f1f;
+}
+
+.tab-btn {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: #6b6b6b;
+  font-family: inherit;
+  font-size: 0.8rem;
+  padding: 10px 4px;
+  margin-right: clamp(10px, 4vw, 20px);
+  cursor: pointer;
+  white-space: nowrap;
+  -webkit-tap-highlight-color: transparent;
+  transition: color 0.15s ease;
+}
+
+.tab-btn::before {
+  content: "> ";
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.tab-btn:hover { color: #a3a3a3; }
+
+.tab-btn.active {
+  color: #4ade80;
+  border-bottom-color: #4ade80;
+}
+
+.tab-btn.active::before { opacity: 1; }
+
+.tab-panel[hidden] { display: none; }
+
+/* ---------------- Architecture diagram ---------------- */
+
+.arch-diagram {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  margin-top: 20px;
+}
+
+.arch-row {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.arch-connector {
+  width: 1px;
+  height: 24px;
+  background: #2a2a2a;
+}
+
+.arch-node {
+  border: 1px solid #2a2a2a;
+  background: #0f0f0f;
+  padding: 14px 18px;
+  border-radius: 2px;
+  text-align: center;
+  min-width: 140px;
+  flex: 1 1 160px;
+  max-width: 100%;
+}
+
+.arch-node-title {
+  color: #e5e5e5;
+  font-size: 0.85rem;
+  margin-bottom: 4px;
+}
+
+.arch-node-sub {
+  color: #6b6b6b;
+  font-size: 0.7rem;
+  line-height: 1.4;
+}
+
+.arch-node-primary {
+  border-color: #4ade80;
+  background: rgba(74, 222, 128, 0.04);
+}
+
+.arch-node-input,
+.arch-node-output {
+  border-color: #4a4a4a;
+  max-width: 100%;
+}
+
+.arch-node-meta {
+  border-color: #fbbf24;
+  background: rgba(251, 191, 36, 0.04);
+  max-width: 100%;
+}
+
+.arch-node-wide {
+  max-width: 100%;
+  flex: 1 1 100%;
+}
+
+.metrics-grid-wide {
+  max-width: 100%;
+}
+
+/* ---------------- Feedback form ---------------- */
+
+.input-box-single {
+  min-height: auto;
+  height: 44px;
+  resize: none;
+}
+
+.success-box {
+  margin-top: 16px;
+  border: 1px solid #166534;
+  background: rgba(74, 222, 128, 0.06);
+  padding: 14px 16px;
+  border-radius: 2px;
+}
+
+.success-box .verdict-text {
+  font-size: 0.85rem;
+}
 
 /* ---------------- Accessibility ---------------- */
 

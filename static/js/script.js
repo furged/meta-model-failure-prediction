@@ -190,7 +190,7 @@ function renderPRChart() {
   svg += `<text x="14" y="${padding.top + plotH / 2}" text-anchor="middle" font-size="12" fill="#4a4a4a" font-family="JetBrains Mono, monospace" transform="rotate(-90 14 ${padding.top + plotH / 2})">precision</text>`;
 
   // The curve itself
-  svg += `<path d="${pathD}" fill="none" stroke="#4ade80" stroke-width="1" />`;
+  svg += `<path d="${pathD}" fill="none" stroke="#4ade80" stroke-width="0.75" />`;
 
   // Mark the operating point at the chosen threshold. Rather than using
   // metrics.precision/metrics.recall directly (computed separately during
@@ -212,10 +212,109 @@ function renderPRChart() {
   const opX = xPos(closest.recall);
   const opY = yPos(closest.precision);
 
-  svg += `<circle cx="${opX.toFixed(1)}" cy="${opY.toFixed(1)}" r="2.5" fill="#fbbf24" />`;
-  svg += `<text x="${opX.toFixed(1)}" y="${(opY - 10).toFixed(1)}" text-anchor="middle" font-size="11" fill="#fbbf24" font-family="JetBrains Mono, monospace">current threshold</text>`;
+  svg += `<circle cx="${opX.toFixed(1)}" cy="${opY.toFixed(1)}" r="3" fill="#fbbf24" />`;
+
+  // Corner legend instead of a floating label on the curve -- a text
+  // label tied to the marker's position would overlap the line or run
+  // off the edge depending on where the threshold happens to fall.
+  // A fixed-position legend in the corner is always readable.
+  const legendX = width - padding.right - 14;
+  const legendY = padding.top + 4;
+  svg += `<circle cx="${legendX}" cy="${legendY}" r="3" fill="#fbbf24" />`;
+  svg += `<text x="${legendX - 8}" y="${(legendY + 3.5).toFixed(1)}" text-anchor="end" font-size="10" fill="#fbbf24" font-family="JetBrains Mono, monospace">threshold ${metrics.threshold.toFixed(3)}</text>`;
 
   chartEl.innerHTML = svg;
 }
 
 renderPRChart();
+
+// ---------------- Tab navigation ----------------
+
+const tabButtons = document.querySelectorAll('.tab-btn');
+const tabPanels = {
+  analyze: $('tab-analyze'),
+  diagnostics: $('tab-diagnostics'),
+  ping: $('tab-ping')
+};
+
+tabButtons.forEach((btn) => {
+  btn.addEventListener('click', () => {
+    const target = btn.dataset.tab;
+
+    tabButtons.forEach((b) => {
+      const isActive = b === btn;
+      b.classList.toggle('active', isActive);
+      b.setAttribute('aria-selected', isActive ? 'true' : 'false');
+    });
+
+    Object.entries(tabPanels).forEach(([name, panel]) => {
+      if (!panel) return;
+      panel.hidden = name !== target;
+    });
+  });
+});
+
+// ---------------- Feedback form ----------------
+
+const feedbackForm = $('feedback-form');
+
+if (feedbackForm) {
+  const feedbackEmail = $('feedback-email');
+  const feedbackMessage = $('feedback-message');
+  const feedbackBtn = $('feedback-btn');
+  const feedbackHint = $('feedback-hint');
+  const feedbackErrorBox = $('feedback-error-box');
+  const feedbackSuccessBox = $('feedback-success-box');
+
+  feedbackForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const email = feedbackEmail.value.trim();
+    const message = feedbackMessage.value.trim();
+
+    feedbackErrorBox.hidden = true;
+    feedbackSuccessBox.hidden = true;
+
+    if (!email) {
+      showFeedbackError('Please enter your email.');
+      return;
+    }
+
+    if (!message) {
+      showFeedbackError('Please enter a message.');
+      return;
+    }
+
+    feedbackBtn.disabled = true;
+    feedbackBtn.textContent = 'SENDING...';
+    feedbackHint.textContent = '';
+
+    try {
+      const res = await fetch('/api/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, message })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        showFeedbackError(data.error || 'Something went wrong. Please try again.');
+        return;
+      }
+
+      feedbackSuccessBox.hidden = false;
+      feedbackForm.reset();
+    } catch (err) {
+      showFeedbackError('Could not reach the server. Check your connection and try again.');
+    } finally {
+      feedbackBtn.disabled = false;
+      feedbackBtn.textContent = 'SEND';
+    }
+  });
+
+  function showFeedbackError(msg) {
+    feedbackErrorBox.textContent = msg;
+    feedbackErrorBox.hidden = false;
+  }
+}
