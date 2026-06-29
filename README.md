@@ -56,22 +56,7 @@ The system consists of three primary components working in sequence:
 - Uses XGBoost with 100 estimators and maximum depth of 6
 
 ### Data Flow
-Input Text
-    ↓
-DistilBERT-SST2 (Base Model)
-    ↓
-[Prediction: Positive/Negative] + [Confidence: 0.92]
-    ↓
-Feature Extraction
-    ↓
-[Confidence, Entropy, Stability, Intensifier_Count, Ambiguity_Score, ...]
-    ↓
-Meta-Model (XGBoost Classifier)
-    ↓
-Failure Probability: 0.73
-    ↓
-Alert: "High risk of incorrect prediction"
-
+![Data-Flow](data-flow.png)
 
 ### Model Details
 
@@ -193,10 +178,10 @@ The project is configured for deployment on HuggingFace Spaces. Deployment is cu
 ## Screenshots
 
 ### Main UI Interface
-*[Insert screenshot of the main web interface showing the input field, prediction button, and result display]*
+![Main UI Interface](landing-page.png)
 
 ### Failure Prediction in Action
-*[Insert screenshot showing a prediction where the meta-model successfully flagged a failure, displaying both the base model's prediction and the failure probability score]*
+![Failure Prediction](failure-case.png)
 
 ---
 
