@@ -4,11 +4,8 @@ __pycache__/
 .ipynb_checkpoints/
 .env
 
-# Meta-model artifacts are generated fresh during the Docker build (see
-# Dockerfile) instead of being pushed as binary files -- this avoids the
-# Git LFS requirement that broke deployment once already. lr_model.pkl
-# and tfidf.pkl are NOT excluded here since they're small (<200KB) and
-# are the original base-model artifacts the meta-model is trained against.
 artifacts/meta_model.pkl
 artifacts/meta_threshold.pkl
 artifacts/metrics.json
+artifacts/tfidf.pkl
+artifacts/lr_model.pkl

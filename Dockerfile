@@ -2,17 +2,14 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install dependencies first (cached layer unless requirements change)
-COPY requirements.txt .
+# Install dependencies. requirements-dev.txt is needed here (not just
+# requirements.txt) because src/models/train_base_lr.py below needs the
+# `datasets` library to download SST-2 -- that's the tradeoff for not
+# committing tfidf.pkl/lr_model.pkl as binary files, which HuggingFace
+# Spaces rejects on a plain git push.
+COPY requirements.txt requirements-dev.txt ./
 
-# CPU-only torch index to keep image size down. requirements.txt alone
-# is sufficient here -- it already includes pandas/scikit-learn/joblib,
-# everything src/models/meta_model.py needs to train. requirements-dev.txt
-# adds datasets/nltk/matplotlib, which are only needed for rebuilding the
-# dataset from scratch (src/data/build_meta_dataset.py), not for training
-# against the already-computed CSV -- so it's deliberately left out here
-# to keep the image smaller and the build faster.
-RUN pip install --no-cache-dir -r requirements.txt \
+RUN pip install --no-cache-dir -r requirements-dev.txt \
     --extra-index-url https://download.pytorch.org/whl/cpu
 
 # Copy the rest of the app
@@ -25,13 +22,15 @@ ENV PORT=7860
 # image and the first request doesn't hit a cold-start download timeout.
 RUN python -c "from transformers import pipeline; pipeline('sentiment-analysis', model='distilbert-base-uncased-finetuned-sst-2-english', device=-1)"
 
-# Train the meta-model fresh during the build, from the already-computed
-# dataset CSV (src/data/processed/base_dataset.csv, committed to the repo
-# as plain text -- no Git LFS needed). This step is fast (~10-30s, pure
-# sklearn on tabular data, no BERT inference involved) and means the
-# trained meta_model.pkl/meta_threshold.pkl/metrics.json never need to be
-# pushed to git as binary artifacts -- they're generated identically on
-# every build instead.
+# Train the TF-IDF + Logistic Regression base model. Downloads SST-2
+# (cached by HF's datasets library) and fits a small sklearn model --
+# a couple of minutes, not BERT-inference-slow.
+RUN python -m src.models.train_base_lr
+
+# Train the meta-model from the already-computed dataset CSV
+# (src/data/processed/base_dataset.csv, committed to the repo as plain
+# text -- no Git LFS needed). Fast: pure sklearn on tabular data, no BERT
+# inference involved here, just the previously-computed features.
 RUN python -m src.models.meta_model
 
 EXPOSE 7860
