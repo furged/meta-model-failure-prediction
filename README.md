@@ -1,174 +1,177 @@
-# Sentinel AI — Transformer Failure Prediction
 
-**A meta-model that watches DistilBERT-SST2 and predicts when it's about to be wrong.**
 
-[![Docker](https://img.shields.io/badge/deployment-docker-blue)](https://www.docker.com/)
-[![Python](https://img.shields.io/badge/python-3.9+-green)](https://www.python.org/)
-[![HuggingFace](https://img.shields.io/badge/🤗-Spaces-yellow)](https://huggingface.co/spaces)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Python Version](https://img.shields.io/badge/python-3.9%2B-blue)](https://www.python.org/)
-[![Code Style](https://img.shields.io/badge/code%20style-black-black)](https://github.com/psf/black)
+<div align="center">
+
+
+
+# Sentinel AI (Transformer Failure Prediction)
+
+**A meta-learning system that predicts when a sentiment transformer is about to be wrong.**
+
+[![Python](https://img.shields.io/badge/Python-3.11-3776AB?style=flat-square&logo=python&logoColor=white)](https://python.org)
+[![PyTorch](https://img.shields.io/badge/PyTorch-2.11-EE4C2C?style=flat-square&logo=pytorch&logoColor=white)](https://pytorch.org)
+[![HuggingFace](https://img.shields.io/badge/🤗%20Transformers-4.45+-FFD21E?style=flat-square)](https://huggingface.co/docs/transformers)
+[![scikit-learn](https://img.shields.io/badge/scikit--learn-1.8-F7931E?style=flat-square&logo=scikit-learn&logoColor=white)](https://scikit-learn.org)
+[![Flask](https://img.shields.io/badge/Flask-3.0-000000?style=flat-square&logo=flask&logoColor=white)](https://flask.palletsprojects.com)
+[![Docker](https://img.shields.io/badge/Docker-ready-2496ED?style=flat-square&logo=docker&logoColor=white)](https://docker.com)
+
+>  **Not deployed yet.** Run it locally with the steps below. Deployment is planned for HuggingFace Spaces (Docker), config is already in this repo.
+
+</div>
 
 ---
 
-## About
+## At a Glance
 
-Sentinel AI is an intelligent monitoring system that acts as a safety net for sentiment analysis models. Instead of blindly trusting a base model's predictions, Sentinel AI monitors DistilBERT-SST2 in real-time, predicts when the model is likely to make an error, flags uncertain or potentially incorrect outputs, and provides confidence scores and failure probabilities. This is particularly useful for production environments where model reliability is critical, such as customer feedback analysis, content moderation, or financial sentiment tracking.
+| | |
+|---|---|
+| **Training samples** | 18,125 |
+| **Real BERT failures in training data** | 979 (5.4%) |
+| **Curated hard examples** | 125 |
+| **Negative-intensifier lexicon size** | 19 words |
+| **Test set size** | 1,000 |
+| **Test set precision** | 0.583 |
+| **Test set recall** | 0.568 |
+| **Test set F1** | 0.575 |
+| **Decision threshold** | 0.107 (validation-tuned) |
+| **Base model** | DistilBERT-SST2 (66M params) |
+| **Meta-model** | Calibrated RandomForest (200 trees, depth 5) |
+| **Meta-features** | 11 |
+| **Adversarial noise injection rate** | 45% |
 
 ---
 
-## Key Features
+## The Problem
 
-- Failure Prediction - Predicts when the base model will make an incorrect prediction
-- Meta-Model Architecture - Learns patterns from DistilBERT's internal states and outputs
-- 18,000+ Sample Dataset - Trained on an expanded, diverse dataset for robust performance
-- Feature Engineering - Includes specialized features like negative-intensifier detection
-- Web Interface - Interactive UI with prediction history, theme toggle, and more
-- Docker Support - Easy deployment with containerization
-- HuggingFace Ready - Configured for Spaces deployment
+DistilBERT fine-tuned on SST-2 sentiment is strong, but not infallible.
+
+| Metric | Value |
+|---|---|
+| Base model accuracy | ~95% |
+| Base model failure rate | ~1 in 20 |
+| Confidence on wrong predictions | Often >95% |
+
+A model that's wrong 5% of the time *and confidently wrong* is dangerous in production if trusted blindly. Sentinel doesn't try to fix the base model, it learns to flag the failures before they're trusted.
 
 ---
 
 ## Architecture
 
-### System Overview
+```
+Input Text
+    │
+    ├──► VADER (rule-based lexicon)
+    ├──► TF-IDF + Logistic Regression
+    └──► DistilBERT (fine-tuned SST-2)
+              │
+              ▼
+    Feature Assembly (11 features)
+              │
+              ▼
+        Meta-Model
+   (Calibrated RandomForest)
+              │
+              ▼
+     Failure Probability
+```
 
-The system consists of three primary components working in sequence:
+### Meta-Features (11 total)
 
-**Component 1: Base Model Layer**
-- DistilBERT model fine-tuned on SST-2 dataset for sentiment analysis
-- Receives input text and produces a sentiment prediction (positive/negative)
-- Outputs a confidence score between 0.0 and 1.0
-- Processes 512 tokens maximum per input
-
-**Component 2: Feature Extraction Pipeline**
-- Captures 14 distinct features from the base model's inference
-- Features include: confidence score, entropy of logits, prediction stability, and linguistic patterns
-- Negative-intensifier detection identifies words like "very", "extremely", "absolutely"
-- Ambiguity score calculation for inputs with neutral or conflicting signals
-- Feature normalization and scaling for meta-model consumption
-
-**Component 3: Meta-Model (Sentinel)**
-- Lightweight classifier trained on 18,000+ labeled examples
-- Input: 14-dimensional feature vector from the extraction pipeline
-- Output: Failure probability score (0.0 to 1.0)
-- Threshold: Scores above 0.65 trigger a "likely failure" alert
-- Uses XGBoost with 100 estimators and maximum depth of 6
-
-### Model Details
-
-**Base Model Specifications:**
-- Architecture: DistilBERT-base-uncased
-- Fine-tuning dataset: SST-2 (67,349 training samples)
-- Input length: 512 tokens
-- Output classes: 2 (negative/positive)
-- Validation accuracy: 91.3%
-- Inference time: 0.04 seconds per sample
-
-**Meta-Model Specifications:**
-- Algorithm: XGBoost Classifier
-- Training samples: 18,247
-- Features: 14 numerical features
-- Validation accuracy: 84.7%
-- Failure detection rate: 78.2%
-- False positive rate: 12.3%
-- Inference time: 0.002 seconds per sample
-
-**Feature Engineering Details:**
-1. Model confidence score (0-1)
-2. Logit entropy (0-2)
-3. Prediction stability across 5 inference runs (standard deviation)
-4. Negative intensifier presence (binary)
-5. Intensifier count (0-5)
-6. Sentence length (tokens)
-7. Sentiment ambiguity score (0-1)
-8. Negation presence (binary)
-9. Adversarial token count
-10. Out-of-distribution score (0-1)
-11. Prediction margin (difference between top two class probabilities)
-12. Maximum softmax probability
-13. Second highest softmax probability
-14. Feature interaction terms (confidence × ambiguity)
-
-### Performance Metrics
-
-| Metric | Value |
-|--------|-------|
-| Base Model Accuracy | 91.3% |
-| Meta-Model Accuracy | 84.7% |
-| Failure Detection Rate | 78.2% |
-| False Positive Rate | 12.3% |
-| Precision | 79.1% |
-| Recall | 78.2% |
-| F1 Score | 78.6% |
-| AUC-ROC | 0.874 |
-| Inference Time (Base) | 0.04 sec |
-| Inference Time (Meta) | 0.002 sec |
-| Total Pipeline Time | 0.042 sec |
-| Training Time | 14.3 min |
+| # | Feature | Type |
+|---|---|---|
+| 1 | VADER prediction | binary |
+| 2 | VADER compound score | float |
+| 3 | LogReg prediction | binary |
+| 4 | LogReg confidence | float |
+| 5 | BERT prediction | binary |
+| 6 | BERT confidence | float |
+| 7 | BERT entropy | float |
+| 8 | VADER ↔ LogReg disagreement | binary |
+| 9 | LogReg ↔ BERT disagreement | binary |
+| 10 | VADER ↔ BERT disagreement | binary |
+| 11 | Negative-intensifier lexicon flag | binary |
 
 ---
 
-## Quick Start
+## Model Iteration History
 
-### Option 1: Local Deployment
+| Version | Approach | Precision | Recall | F1 |
+|---|---|---|---|---|
+| v1 (baseline) | LogReg + `class_weight=balanced`, 5k samples | 0.16 | 0.87 | 0.27 |
+| v2 | Calibrated RandomForest, threshold tuning | 0.58 | 0.57 | 0.58 |
+| v3 (current) | + 18k samples, intensifier lexicon feature | 0.58 | 0.57 | 0.58 |
 
-1. Clone the repository
+v1 flagged ~20% of all inputs as failures when the true rate was ~4%, precision of 0.16 means 84% of its warnings were false alarms. v2/v3 brought precision to 0.58, a **3.6× improvement**.
+
+---
+
+## Training Data Composition
+
+| Source | Count | Notes |
+|---|---|---|
+| SST-2 sampled | 18,000 | 45% adversarial noise injection (typos, casing, punctuation) |
+| Curated hard examples | 125 | Negation, sarcasm-adjacent intensifiers, mixed sentiment |
+| **Total** | **18,125** | |
+
+**Example curated patterns:**
+
+| Pattern | Example | True Label |
+|---|---|---|
+| Negation | "not the worst film I've seen this year" | positive |
+| Intensifier-as-praise | "disgustingly addictive" | positive |
+| Mixed sentiment | "flawed in execution, brilliant in ambition" | positive |
+| Faint praise | "exceeded my admittedly low expectations" | positive |
+
+---
+
+## Tech Stack
+
+<div align="center">
+
+[![DistilBERT](https://img.shields.io/badge/Model-DistilBERT--SST2-FFD21E?style=flat-square&logo=huggingface&logoColor=black)](https://huggingface.co/distilbert-base-uncased-finetuned-sst-2-english)
+[![VADER](https://img.shields.io/badge/NLP-VADER_Sentiment-5C4EE5?style=flat-square)](https://github.com/cjhutto/vaderSentiment)
+[![RandomForest](https://img.shields.io/badge/Meta--Model-Calibrated_RandomForest-F7931E?style=flat-square&logo=scikit-learn&logoColor=white)](https://scikit-learn.org)
+[![TF-IDF](https://img.shields.io/badge/Baseline-TF--IDF_%2B_LogReg-4B8BBE?style=flat-square)](https://scikit-learn.org)
+
+[![Flask](https://img.shields.io/badge/Backend-Flask_3.0-000000?style=flat-square&logo=flask&logoColor=white)](https://flask.palletsprojects.com)
+[![Gunicorn](https://img.shields.io/badge/Server-Gunicorn_22-499848?style=flat-square&logo=gunicorn&logoColor=white)](https://gunicorn.org)
+[![Resend](https://img.shields.io/badge/Email-Resend-000000?style=flat-square)](https://resend.com)
+
+[![Python](https://img.shields.io/badge/Python-3.11-3776AB?style=flat-square&logo=python&logoColor=white)](https://python.org)
+[![PyTorch](https://img.shields.io/badge/PyTorch-2.11_CPU-EE4C2C?style=flat-square&logo=pytorch&logoColor=white)](https://pytorch.org)
+[![Docker](https://img.shields.io/badge/Docker-containerized-2496ED?style=flat-square&logo=docker&logoColor=white)](https://docker.com)
+
+</div>
+
+---
+
+## Run Locally
+
+**Requirements:** Python 3.11+, ~2GB free disk for model weights
+
 ```bash
 git clone https://github.com/furged/meta-model-failure-prediction.git
 cd meta-model-failure-prediction
-```
 
-2. Create a virtual environment
-```bash
-python -m venv venv
-```
-
-3. Activate the virtual environment
-```bash
-# On Windows
-venv\Scripts\activate
-# On macOS/Linux
-source venv/bin/activate
-```
-
-4. Install dependencies
-```bash
 pip install -r requirements.txt
-```
 
-5. Run the application
-```bash
+# Create .env for the feedback form (optional)
+cp .env.example .env
+# edit .env and add your Resend API key
+
 python app.py
 ```
 
-6. Open your browser and navigate to `http://localhost:5000`
+Open `http://localhost:10000`. First request downloads DistilBERT weights (~260MB).
 
-### Option 2: Docker Deployment
+### Retraining the Meta-Model
 
 ```bash
-docker build -t sentinel-ai .
-docker run -p 5000:5000 sentinel-ai
+pip install -r requirements-dev.txt
+
+python -m src.data.build_meta_dataset   # rebuilds the 18k-sample dataset (slow, downloads SST-2 + runs BERT inference)
+python -m src.models.meta_model          # retrains the meta-model, exports metrics.json
 ```
-
-### Option 3: HuggingFace Spaces
-
-The project is configured for deployment on HuggingFace Spaces. Deployment is currently under process and will be available shortly at the HuggingFace Spaces URL. The Docker configuration and Procfile are ready for seamless deployment once the Space is created.
-
----
-
-## Requirements
-
-- `Python 3.9+`
-- `Flask 2.0+`
-- `Transformers 4.30+`
-- `PyTorch 2.0+`
-- `scikit-learn 1.2+`
-- `pandas 2.0+`
-- `numpy 1.24+`
-- `xgboost 1.7+`
-- `Docker 20.10+`
-- `Jupyter Notebook (development)`
 
 ---
 
@@ -180,9 +183,23 @@ The project is configured for deployment on HuggingFace Spaces. Deployment is cu
 ### Failure Prediction in Action
 ![Failure Prediction](failure-case.png)
 
+## Deployment Config (planned)
+
+This repo includes a `Dockerfile` configured for **HuggingFace Spaces** (Docker SDK):
+
+| Setting | Value |
+|---|---|
+| Port | 7860 |
+| Workers | 1 (single model instance in memory) |
+| Timeout | 120s |
+| Base image | `python:3.11-slim` |
+| Model pre-download | Baked into image at build time |
+
+Required environment variable for the feedback form: `RESEND_API_KEY`
+
 ---
 
-## License
+## Links
 
-MIT License - see the [LICENSE](LICENSE) file for details.
-```
+[![GitHub](https://img.shields.io/badge/GitHub-furged-181717?style=flat-square&logo=github)](https://github.com/furged)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-Anushka_Shakya-0A66C2?style=flat-square&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/anushka-shakya-profile/)
