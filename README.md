@@ -55,9 +55,6 @@ The system consists of three primary components working in sequence:
 - Threshold: Scores above 0.65 trigger a "likely failure" alert
 - Uses XGBoost with 100 estimators and maximum depth of 6
 
-### Data Flow
-![Data-Flow](data-flow.png)
-
 ### Model Details
 
 **Base Model Specifications:**
