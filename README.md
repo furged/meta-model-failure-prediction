@@ -1,23 +1,33 @@
-
-
 <div align="center">
-
-
 
 # Sentinel AI (Transformer Failure Prediction)
 
 **A meta-learning system that predicts when a sentiment transformer is about to be wrong.**
 
 [![Python](https://img.shields.io/badge/Python-3.11-3776AB?style=flat-square&logo=python&logoColor=white)](https://python.org)
-[![PyTorch](https://img.shields.io/badge/PyTorch-2.11-EE4C2C?style=flat-square&logo=pytorch&logoColor=white)](https://pytorch.org)
-[![HuggingFace](https://img.shields.io/badge/🤗%20Transformers-4.45+-FFD21E?style=flat-square)](https://huggingface.co/docs/transformers)
-[![scikit-learn](https://img.shields.io/badge/scikit--learn-1.8-F7931E?style=flat-square&logo=scikit-learn&logoColor=white)](https://scikit-learn.org)
-[![Flask](https://img.shields.io/badge/Flask-3.0-000000?style=flat-square&logo=flask&logoColor=white)](https://flask.palletsprojects.com)
+[![PyTorch](https://img.shields.io/badge/PyTorch-2.0.1-EE4C2C?style=flat-square&logo=pytorch&logoColor=white)](https://pytorch.org)
+[![HuggingFace](https://img.shields.io/badge/🤗%20Transformers-4.30.0-FFD21E?style=flat-square)](https://huggingface.co/docs/transformers)
+[![scikit-learn](https://img.shields.io/badge/scikit--learn-1.2.2-F7931E?style=flat-square&logo=scikit-learn&logoColor=white)](https://scikit-learn.org)
+[![Flask](https://img.shields.io/badge/Flask-2.3.3-000000?style=flat-square&logo=flask&logoColor=white)](https://flask.palletsprojects.com)
 [![Docker](https://img.shields.io/badge/Docker-ready-2496ED?style=flat-square&logo=docker&logoColor=white)](https://docker.com)
 
->  **Not deployed yet.** Run it locally with the steps below. Deployment is planned for HuggingFace Spaces (Docker), config is already in this repo.
+> **Live Demo:** [https://huggingface.co/spaces/furged/sentinel-ai](https://huggingface.co/spaces/furged/sentinel-ai)
+> 
+> Production deployment running on Hugging Face Spaces using Docker.
 
 </div>
+
+---
+
+## Features
+
+- Predicts when DistilBERT is likely to fail
+- Meta-learning failure prediction
+- Multi-model ensemble (VADER, TF-IDF+LogReg, DistilBERT)
+- Confidence-aware diagnostics
+- Interactive Flask web interface
+- Feedback collection via Resend
+- Docker deployment on Hugging Face Spaces
 
 ---
 
@@ -133,13 +143,9 @@ v1 flagged ~20% of all inputs as failures when the true rate was ~4%, precision 
 [![RandomForest](https://img.shields.io/badge/Meta--Model-Calibrated_RandomForest-F7931E?style=flat-square&logo=scikit-learn&logoColor=white)](https://scikit-learn.org)
 [![TF-IDF](https://img.shields.io/badge/Baseline-TF--IDF_%2B_LogReg-4B8BBE?style=flat-square)](https://scikit-learn.org)
 
-[![Flask](https://img.shields.io/badge/Backend-Flask_3.0-000000?style=flat-square&logo=flask&logoColor=white)](https://flask.palletsprojects.com)
-[![Gunicorn](https://img.shields.io/badge/Server-Gunicorn_22-499848?style=flat-square&logo=gunicorn&logoColor=white)](https://gunicorn.org)
+[![Flask](https://img.shields.io/badge/Backend-Flask_2.3.3-000000?style=flat-square&logo=flask&logoColor=white)](https://flask.palletsprojects.com)
+[![Gunicorn](https://img.shields.io/badge/Server-Gunicorn_22.0.0-499848?style=flat-square&logo=gunicorn&logoColor=white)](https://gunicorn.org)
 [![Resend](https://img.shields.io/badge/Email-Resend-000000?style=flat-square)](https://resend.com)
-
-[![Python](https://img.shields.io/badge/Python-3.11-3776AB?style=flat-square&logo=python&logoColor=white)](https://python.org)
-[![PyTorch](https://img.shields.io/badge/PyTorch-2.11_CPU-EE4C2C?style=flat-square&logo=pytorch&logoColor=white)](https://pytorch.org)
-[![Docker](https://img.shields.io/badge/Docker-containerized-2496ED?style=flat-square&logo=docker&logoColor=white)](https://docker.com)
 
 </div>
 
@@ -177,22 +183,24 @@ python -m src.models.meta_model          # retrains the meta-model, exports metr
 
 ## Screenshots
 
-### Main UI Interface
+### Dashboard
 ![Main UI Interface](landing-page.png)
 
-### Failure Prediction in Action
+### Confidence Diagnostics
 ![Failure Prediction](failure-case.png)
 
-## Deployment Config (planned)
+## Deployment
 
-This repo includes a `Dockerfile` configured for **HuggingFace Spaces** (Docker SDK):
+The application is deployed on **Hugging Face Spaces** using Docker. The deployment configuration includes:
 
 | Setting | Value |
 |---|---|
+| Platform | Hugging Face Spaces (Docker SDK) |
 | Port | 7860 |
 | Workers | 1 (single model instance in memory) |
 | Timeout | 120s |
 | Base image | `python:3.11-slim` |
+| Server | Gunicorn |
 | Model pre-download | Baked into image at build time |
 
 Required environment variable for the feedback form: `RESEND_API_KEY`
@@ -203,3 +211,4 @@ Required environment variable for the feedback form: `RESEND_API_KEY`
 
 [![GitHub](https://img.shields.io/badge/GitHub-furged-181717?style=flat-square&logo=github)](https://github.com/furged)
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-Anushka_Shakya-0A66C2?style=flat-square&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/anushka-shakya-profile/)
+[![Hugging Face](https://img.shields.io/badge/🤗%20Spaces-Live_Demo-FFD21E?style=flat-square)](https://huggingface.co/spaces/furged/sentinel-ai)
