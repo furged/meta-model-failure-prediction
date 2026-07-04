@@ -65,26 +65,7 @@ A model that's wrong 5% of the time *and confidently wrong* is dangerous in prod
 
 ---
 
-## Architecture
-
-```
-Input Text
-    │
-    ├──► VADER (rule-based lexicon)
-    ├──► TF-IDF + Logistic Regression
-    └──► DistilBERT (fine-tuned SST-2)
-              │
-              ▼
-    Feature Assembly (11 features)
-              │
-              ▼
-        Meta-Model
-   (Calibrated RandomForest)
-              │
-              ▼
-     Failure Probability
-```
-
+           
 ### Meta-Features (11 total)
 
 | # | Feature | Type |
