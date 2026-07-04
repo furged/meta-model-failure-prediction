@@ -184,10 +184,10 @@ python -m src.models.meta_model          # retrains the meta-model, exports metr
 ## Screenshots
 
 ### Dashboard
-![Main UI Interface](landing-page (2).png)
+![Main UI Interface](a.png)
 
 ### Confidence Diagnostics
-![Failure Prediction](failure-case (2).png)
+![Failure Prediction](b.png)
 
 ## Deployment
 
